@@ -10,13 +10,6 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    /// Double update message
-    DoubleUpdate {
-        old_root: [u8; 32],
-        new_root: [u8; 32],
-        signature: String,
-        signature_2: String,
-    },
     /// Transfer ownership to address `0x0` (inherited from ownable)
     RenounceOwnership {},
     /// Transfer ownership to `newOwner` (inherited from ownable)

@@ -1,6 +1,6 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, Event, MessageInfo, Response, StdResult};
 use cw2::set_contract_version;
 use ethers::core::types::{RecoveryMessage, Signature, H160, H256};
 use sha3::{digest::Update, Digest, Keccak256};
@@ -51,12 +51,6 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::DoubleUpdate {
-            old_root,
-            new_root,
-            signature,
-            signature_2,
-        } => try_double_update(deps, old_root, new_root, signature, signature_2),
         ExecuteMsg::RenounceOwnership {} => Ok(try_renounce_ownership(deps, info)?),
         ExecuteMsg::TransferOwnership { new_owner } => {
             Ok(try_transfer_ownership(deps, info, new_owner)?)
@@ -70,11 +64,21 @@ pub fn try_double_update(
     new_root: [u8; 32],
     signature: String,
     signature_2: String,
+    fail: fn(deps: DepsMut) -> Result<Response, ContractError>,
 ) -> Result<Response, ContractError> {
-    if is_updater_signature(deps.as_ref(), old_root, new_root, signature)?
-        && is_updater_signature(deps.as_ref(), old_root, new_root, signature_2)?
+    if is_updater_signature(deps.as_ref(), old_root, new_root, &signature)?
+        && is_updater_signature(deps.as_ref(), old_root, new_root, &signature_2)?
         && new_root != old_root
-    {}
+    {
+        fail(deps)?;
+        return Ok(Response::new().add_event(
+            Event::new("DoubleUpdate")
+                .add_attribute("old_root", std::str::from_utf8(&old_root).unwrap())
+                .add_attribute("new_root", std::str::from_utf8(&new_root).unwrap())
+                .add_attribute("signature", signature)
+                .add_attribute("signature_2", signature_2),
+        ));
+    }
 
     Ok(Response::new())
 }
@@ -83,7 +87,7 @@ fn is_updater_signature(
     deps: Deps,
     old_root: [u8; 32],
     new_root: [u8; 32],
-    signature: String,
+    signature: &str,
 ) -> Result<bool, ContractError> {
     let home_domain_hash = query_home_domain_hash(deps)?.home_domain_hash;
     let updater = query_updater(deps)?.updater;
@@ -97,7 +101,7 @@ fn is_updater_signature(
             .as_slice(),
     );
 
-    let sig = Signature::from_str(&signature)?;
+    let sig = Signature::from_str(signature)?;
     let recovered_address = sig.recover(RecoveryMessage::Hash(digest))?;
     Ok(H160::from_str(&updater).unwrap() == recovered_address)
 }
