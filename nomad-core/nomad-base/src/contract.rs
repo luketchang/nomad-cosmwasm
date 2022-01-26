@@ -1,9 +1,10 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw2::set_contract_version;
+use ethers::core::types::{RecoveryMessage, Signature, H160, H256};
 use sha3::{digest::Update, Digest, Keccak256};
-use secp256k1::Secp256k1;
+use std::str::FromStr;
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -21,7 +22,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     let updater = deps.api.addr_validate(&msg.updater)?;
@@ -55,7 +56,7 @@ pub fn execute(
             new_root,
             signature,
             signature_2,
-        } => Ok(Response::new()),
+        } => try_double_update(deps, old_root, new_root, signature, signature_2),
         ExecuteMsg::RenounceOwnership {} => Ok(try_renounce_ownership(deps, info)?),
         ExecuteMsg::TransferOwnership { new_owner } => {
             Ok(try_transfer_ownership(deps, info, new_owner)?)
@@ -63,21 +64,42 @@ pub fn execute(
     }
 }
 
+pub fn try_double_update(
+    deps: DepsMut,
+    old_root: [u8; 32],
+    new_root: [u8; 32],
+    signature: String,
+    signature_2: String,
+) -> Result<Response, ContractError> {
+    if is_updater_signature(deps.as_ref(), old_root, new_root, signature)?
+        && is_updater_signature(deps.as_ref(), old_root, new_root, signature_2)?
+        && new_root != old_root
+    {}
+
+    Ok(Response::new())
+}
+
 fn is_updater_signature(
     deps: Deps,
     old_root: [u8; 32],
     new_root: [u8; 32],
     signature: String,
-) -> bool {
+) -> Result<bool, ContractError> {
     let home_domain_hash = query_home_domain_hash(deps)?.home_domain_hash;
-    let digest = <[u8; 32]>::from(
+    let updater = query_updater(deps)?.updater;
+
+    let digest = H256::from_slice(
         Keccak256::new()
             .chain(home_domain_hash)
             .chain(old_root)
             .chain(new_root)
-            .finalize(),
+            .finalize()
+            .as_slice(),
     );
 
+    let sig = Signature::from_str(&signature)?;
+    let recovered_address = sig.recover(RecoveryMessage::Hash(digest))?;
+    Ok(H160::from_str(&updater).unwrap() == recovered_address)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
