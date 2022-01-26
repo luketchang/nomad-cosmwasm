@@ -85,7 +85,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_owner(deps: Deps) -> StdResult<OwnerResponse> {
+pub fn query_owner(deps: Deps) -> StdResult<OwnerResponse> {
     let state = STATE.load(deps.storage)?;
     Ok(OwnerResponse {
         owner: state.owner.to_string(),

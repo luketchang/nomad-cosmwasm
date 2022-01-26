@@ -1,5 +1,5 @@
 [package]
-name = "ownable"
+name = "nomad-base"
 version = "0.1.0"
 authors = ["Luke Tchang <ltchang@stanford.edu>"]
 edition = "2018"
@@ -14,17 +14,6 @@ exclude = [
 
 [lib]
 crate-type = ["cdylib", "rlib"]
-
-[profile.release]
-opt-level = 3
-debug = false
-rpath = false
-lto = true
-debug-assertions = false
-codegen-units = 1
-panic = 'abort'
-incremental = false
-overflow-checks = true
 
 [features]
 # for more explicit tests, cargo test --features=backtraces
@@ -47,6 +36,11 @@ cw2 = "0.11"
 schemars = "0.8"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0" }
+sha3 = "0.10.0"
+secp256k1 = "0.21.2"
+
+ownable = { path = "../ownable" }
+
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta" }

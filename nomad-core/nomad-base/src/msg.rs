@@ -16,7 +16,11 @@ pub enum ExecuteMsg {
         new_root: [u8; 32],
         signature: String,
         signature_2: String,
-    }
+    },
+    /// Transfer ownership to address `0x0` (inherited from ownable)
+    RenounceOwnership {},
+    /// Transfer ownership to `newOwner` (inherited from ownable)
+    TransferOwnership { new_owner: String },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -32,6 +36,8 @@ pub enum QueryMsg {
     State {},
     /// Return updater address
     Updater {},
+    /// Owner of contract (inherited from ownable)
+    Owner {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

@@ -8,6 +8,13 @@ pub enum ContractError {
 
     #[error("Unauthorized")]
     Unauthorized {},
-    // Add any other custom errors you like here.
-    // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
+}
+
+impl From<ownable::ContractError> for ContractError {
+    fn from(err: ownable::ContractError) -> Self {
+        match err {
+            ownable::ContractError::Std(error) => ContractError::Std(error),
+            ownable::ContractError::Unauthorized {} => ContractError::Unauthorized {},
+        }
+    }
 }
