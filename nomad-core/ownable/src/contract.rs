@@ -30,6 +30,16 @@ pub fn instantiate(
         .add_attribute("owner", info.sender))
 }
 
+pub fn only_owner(deps: Deps, info: MessageInfo) -> Result<Response, ContractError> {
+    let state = STATE.load(deps.storage)?;
+
+    if info.sender != state.owner {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    Ok(Response::new())
+}
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
@@ -46,12 +56,9 @@ pub fn execute(
 }
 
 pub fn try_renounce_ownership(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+    only_owner(deps.as_ref(), info)?;
+
     let mut state = STATE.load(deps.storage)?;
-
-    if info.sender != state.owner {
-        return Err(ContractError::Unauthorized {});
-    }
-
     state.owner = Addr::unchecked("0x0");
 
     STATE.save(deps.storage, &state)?;
@@ -64,14 +71,11 @@ pub fn try_transfer_ownership(
     info: MessageInfo,
     new_owner: String,
 ) -> Result<Response, ContractError> {
+    only_owner(deps.as_ref(), info)?;
+
     let new_owner = deps.api.addr_validate(&new_owner)?;
 
     let mut state = STATE.load(deps.storage)?;
-
-    if info.sender != state.owner {
-        return Err(ContractError::Unauthorized {});
-    }
-
     state.owner = new_owner;
     STATE.save(deps.storage, &state)?;
 
