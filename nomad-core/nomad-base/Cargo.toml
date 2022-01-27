@@ -38,8 +38,10 @@ serde = { version = "1.0", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0" }
 sha3 = "0.10.0"
 ethers = "0.6.2"
+tokio = { version = "1.0.1", features = ["rt", "macros"] }
 
 ownable = { path = "../ownable" }
+utils = { path = "../utils" }
 
 
 [dev-dependencies]

@@ -6,7 +6,7 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use ethers::core::types::{RecoveryMessage, Signature, H160, H256};
 use sha3::{digest::Update, Digest, Keccak256};
-use std::str::FromStr;
+use std::{str::FromStr, convert::TryFrom};
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -68,8 +68,8 @@ pub fn try_double_update(
     deps: DepsMut,
     old_root: [u8; 32],
     new_root: [u8; 32],
-    signature: String,
-    signature_2: String,
+    signature: Vec<u8>,
+    signature_2: Vec<u8>,
     fail: fn(deps: DepsMut) -> Result<Response, ContractError>,
 ) -> Result<Response, ContractError> {
     if is_updater_signature(deps.as_ref(), old_root, new_root, &signature)?
@@ -81,8 +81,8 @@ pub fn try_double_update(
             Event::new("DoubleUpdate")
                 .add_attribute("old_root", std::str::from_utf8(&old_root).unwrap())
                 .add_attribute("new_root", std::str::from_utf8(&new_root).unwrap())
-                .add_attribute("signature", signature)
-                .add_attribute("signature_2", signature_2),
+                .add_attribute("signature", std::str::from_utf8(&signature).unwrap())
+                .add_attribute("signature_2", std::str::from_utf8(&signature_2).unwrap()),
         ));
     }
 
@@ -93,22 +93,22 @@ fn is_updater_signature(
     deps: Deps,
     old_root: [u8; 32],
     new_root: [u8; 32],
-    signature: &str,
+    signature: &[u8],
 ) -> Result<bool, ContractError> {
     let home_domain_hash = query_home_domain_hash(deps)?.home_domain_hash;
     let updater = query_updater(deps)?.updater;
 
     let digest = H256::from_slice(
         Keccak256::new()
-            .chain(home_domain_hash)
+            .chain(H256::from(home_domain_hash))
             .chain(old_root)
             .chain(new_root)
             .finalize()
             .as_slice(),
     );
 
-    let sig = Signature::from_str(signature)?;
-    let recovered_address = sig.recover(RecoveryMessage::Hash(digest))?;
+    let sig = Signature::try_from(signature)?;
+    let recovered_address = sig.recover(RecoveryMessage::Data(digest.as_bytes().to_vec()))?;
     Ok(H160::from_str(&updater).unwrap() == recovered_address)
 }
 
@@ -135,14 +135,17 @@ fn query_home_domain_hash(deps: Deps) -> StdResult<HomeDomainHashResponse> {
     let state = STATE.load(deps.storage)?;
     let domain = state.local_domain;
 
-    let home_domain_hash = <[u8; 32]>::from(
+    let home_domain_hash = H256::from_slice(
         Keccak256::new()
             .chain(domain.to_be_bytes())
             .chain("NOMAD".as_bytes())
-            .finalize(),
+            .finalize()
+            .as_slice(),
     );
 
-    Ok(HomeDomainHashResponse { home_domain_hash })
+    Ok(HomeDomainHashResponse {
+        home_domain_hash: home_domain_hash.into(),
+    })
 }
 
 fn query_local_domain(deps: Deps) -> StdResult<LocalDomainResponse> {
@@ -172,11 +175,11 @@ mod tests {
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
     use ownable::msg::OwnerResponse;
-
-    use ethers::signers::{LocalWallet, Signer};
+    use utils::Updater;
 
     const LOCAL_DOMAIN: u32 = 1000;
-    const UPDATER_PRIVKEY: &str = "1111111111111111111111111111111111111111111111111111111111111111";
+    const UPDATER_PRIVKEY: &str =
+        "1111111111111111111111111111111111111111111111111111111111111111";
     const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
 
     #[test]
@@ -213,15 +216,15 @@ mod tests {
         assert_eq!(UPDATER_PUBKEY.to_owned(), value.updater);
     }
 
-    #[test]
-    fn accepts_updater_signature() {
-        let updater_wallet: LocalWallet = UPDATER_PRIVKEY.parse().unwrap();
+    #[tokio::test]
+    async fn accepts_updater_signature() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
 
         let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY,
+            updater: UPDATER_PUBKEY.to_owned(),
         };
         let info = mock_info("creator", &coins(100, "earth"));
 
@@ -230,6 +233,9 @@ mod tests {
 
         let old_root = [0u8; 32];
         let new_root = [1u8; 32];
-        // let signature = 
+        let update = updater.sign_update(old_root, new_root).await.unwrap();
+
+        let is_updater_sig = is_updater_signature(deps.as_ref(), old_root, new_root, &update.signature.to_vec()).unwrap();
+        assert!(is_updater_sig)
     }
 }
