@@ -7,6 +7,12 @@ pub struct InstantiateMsg {
     pub updater: String,
 }
 
+impl From<InstantiateMsg> for ownable::msg::InstantiateMsg {
+    fn from(_: InstantiateMsg) -> Self {
+        ownable::msg::InstantiateMsg {}
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {

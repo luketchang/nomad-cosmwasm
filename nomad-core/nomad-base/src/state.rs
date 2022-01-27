@@ -26,4 +26,4 @@ pub struct State {
     pub committed_root: [u8; 32],
 }
 
-pub const STATE: Item<State> = Item::new("state");
+pub const STATE: Item<State> = Item::new("nomad_base_state");

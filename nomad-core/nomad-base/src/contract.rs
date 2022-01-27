@@ -1,6 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, Event, MessageInfo, Response, StdResult};
+use cosmwasm_std::{
+    to_binary, Binary, Deps, DepsMut, Env, Event, MessageInfo, Response, StdResult,
+};
 use cw2::set_contract_version;
 use ethers::core::types::{RecoveryMessage, Signature, H160, H256};
 use sha3::{digest::Update, Digest, Keccak256};
@@ -12,7 +14,9 @@ use crate::msg::{
     QueryMsg, StateResponse, UpdaterResponse,
 };
 use crate::state::{State, STATE};
-use ownable::contract::{query_owner, try_renounce_ownership, try_transfer_ownership};
+use ownable::contract::{
+    instantiate as ownable_instantiate, query_owner, try_renounce_ownership, try_transfer_ownership,
+};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:ownable";
@@ -20,11 +24,13 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
+    mut deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    ownable_instantiate(deps.branch(), env, info, msg.clone().into())?;
+
     let updater = deps.api.addr_validate(&msg.updater)?;
 
     let state = State {
@@ -165,83 +171,65 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
+    use ownable::msg::OwnerResponse;
+
+    use ethers::signers::{LocalWallet, Signer};
+
+    const LOCAL_DOMAIN: u32 = 1000;
+    const UPDATER_PRIVKEY: &str = "1111111111111111111111111111111111111111111111111111111111111111";
+    const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
 
     #[test]
     fn proper_initialization() {
-        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
+        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
 
-        let msg = InstantiateMsg {};
+        let init_msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
         let info = mock_info("creator", &coins(100, "earth"));
 
-        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();
-        let value: OwnerResponse = from_binary(&res).unwrap();
+        // Owner
+        let owner_res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();
+        let value: OwnerResponse = from_binary(&owner_res).unwrap();
         assert_eq!("creator", value.owner);
+
+        // State
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::State {}).unwrap();
+        let value: StateResponse = from_binary(&res).unwrap();
+        assert_eq!(1, value.state);
+
+        // Local domain
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::LocalDomain {}).unwrap();
+        let value: LocalDomainResponse = from_binary(&res).unwrap();
+        assert_eq!(LOCAL_DOMAIN, value.local_domain);
+
+        // Updater
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Updater {}).unwrap();
+        let value: UpdaterResponse = from_binary(&res).unwrap();
+        assert_eq!(UPDATER_PUBKEY.to_owned(), value.updater);
     }
 
     #[test]
-    fn renounce_ownership() {
+    fn accepts_updater_signature() {
+        let updater_wallet: LocalWallet = UPDATER_PRIVKEY.parse().unwrap();
+
         let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
 
-        let msg = InstantiateMsg {};
-        let info = mock_info("creator", &coins(100, "token"));
-        let _res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
-
-        let msg = ExecuteMsg::RenounceOwnership {};
-        let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
-
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();
-        let value: OwnerResponse = from_binary(&res).unwrap();
-        assert_eq!("0x0", value.owner);
-    }
-
-    #[test]
-    fn transfer_ownership() {
-        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
-
-        let msg = InstantiateMsg {};
-        let info = mock_info("creator", &coins(100, "token"));
-        let _res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
-
-        let msg = ExecuteMsg::TransferOwnership {
-            new_owner: "new_owner".to_owned(),
+        let init_msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY,
         };
-        let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+        let info = mock_info("creator", &coins(100, "earth"));
 
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();
-        let value: OwnerResponse = from_binary(&res).unwrap();
-        assert_eq!("new_owner", value.owner);
-    }
+        let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
+        assert_eq!(0, res.messages.len());
 
-    #[test]
-    fn access_control() {
-        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
-
-        let msg = InstantiateMsg {};
-        let info = mock_info("creator", &coins(100, "token"));
-        let _res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
-
-        let no_auth_info = mock_info("not_auth", &coins(100, "token"));
-        let renounce_msg = ExecuteMsg::RenounceOwnership {};
-        let is_error = execute(
-            deps.as_mut(),
-            mock_env(),
-            no_auth_info.clone(),
-            renounce_msg,
-        )
-        .is_err();
-        assert!(is_error);
-
-        let transfer_msg = ExecuteMsg::TransferOwnership {
-            new_owner: "new_owner".to_owned(),
-        };
-        let is_error = execute(deps.as_mut(), mock_env(), no_auth_info, transfer_msg).is_err();
-        assert!(is_error);
-
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();
-        let value: OwnerResponse = from_binary(&res).unwrap();
-        assert_eq!("creator", value.owner);
+        let old_root = [0u8; 32];
+        let new_root = [1u8; 32];
+        // let signature = 
     }
 }
