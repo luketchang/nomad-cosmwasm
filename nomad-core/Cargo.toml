@@ -5,4 +5,5 @@ cargo-features = ["edition2021"]
 members = [
     "nomad-base",
     "ownable",
+    "utils",
 ]

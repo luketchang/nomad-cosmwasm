@@ -7,7 +7,7 @@ pub enum ContractError {
     Std(#[from] StdError),
 
     #[error("{0}")]
-    SignatureError(#[from] ethers::types::SignatureError),
+    SignatureError(#[from] ethers_core::types::SignatureError),
 
     #[error("{0}")]
     OwnableError(#[from] ownable::ContractError),

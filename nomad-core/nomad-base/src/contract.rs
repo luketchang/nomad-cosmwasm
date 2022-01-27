@@ -4,7 +4,7 @@ use cosmwasm_std::{
     to_binary, Binary, Deps, DepsMut, Env, Event, MessageInfo, Response, StdResult,
 };
 use cw2::set_contract_version;
-use ethers::core::types::{RecoveryMessage, Signature, H160, H256};
+use ethers_core::types::{RecoveryMessage, Signature, H160, H256};
 use sha3::{digest::Update, Digest, Keccak256};
 use std::{str::FromStr, convert::TryFrom};
 
