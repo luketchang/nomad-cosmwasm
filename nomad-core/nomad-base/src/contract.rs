@@ -6,7 +6,7 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use ethers_core::types::{RecoveryMessage, Signature, H160, H256};
 use sha3::{digest::Update, Digest, Keccak256};
-use std::{str::FromStr, convert::TryFrom};
+use std::{convert::TryFrom, str::FromStr};
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -67,26 +67,26 @@ pub fn execute(
 pub fn try_double_update(
     deps: DepsMut,
     old_root: [u8; 32],
-    new_root: [u8; 32],
+    new_roots: [[u8; 32]; 2],
     signature: Vec<u8>,
     signature_2: Vec<u8>,
     fail: fn(deps: DepsMut) -> Result<Response, ContractError>,
 ) -> Result<Response, ContractError> {
-    if is_updater_signature(deps.as_ref(), old_root, new_root, &signature)?
-        && is_updater_signature(deps.as_ref(), old_root, new_root, &signature_2)?
-        && new_root != old_root
+    if is_updater_signature(deps.as_ref(), old_root, new_roots[0], &signature)?
+        && is_updater_signature(deps.as_ref(), old_root, new_roots[1], &signature_2)?
+        && new_roots[0] != new_roots[1]
     {
         fail(deps)?;
         return Ok(Response::new().add_event(
             Event::new("DoubleUpdate")
-                .add_attribute("old_root", std::str::from_utf8(&old_root).unwrap())
-                .add_attribute("new_root", std::str::from_utf8(&new_root).unwrap())
-                .add_attribute("signature", std::str::from_utf8(&signature).unwrap())
-                .add_attribute("signature_2", std::str::from_utf8(&signature_2).unwrap()),
+                .add_attribute("old_root", std::str::from_utf8(&new_roots[0]).unwrap())
+                .add_attribute("new_root", std::str::from_utf8(&new_roots[1]).unwrap())
+                .add_attribute("signature", String::from_utf8_lossy(&signature))
+                .add_attribute("signature_2", String::from_utf8_lossy(&signature_2)),
         ));
     }
 
-    Ok(Response::new())
+    Err(ContractError::InvalidDoubleUpdate {})
 }
 
 fn is_updater_signature(
@@ -182,6 +182,10 @@ mod tests {
         "1111111111111111111111111111111111111111111111111111111111111111";
     const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
 
+    fn mock_fail_fn(deps: DepsMut) -> Result<Response, ContractError> {
+        Ok(Response::new())
+    }
+
     #[test]
     fn proper_initialization() {
         let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
@@ -235,7 +239,108 @@ mod tests {
         let new_root = [1u8; 32];
         let update = updater.sign_update(old_root, new_root).await.unwrap();
 
-        let is_updater_sig = is_updater_signature(deps.as_ref(), old_root, new_root, &update.signature.to_vec()).unwrap();
+        let is_updater_sig = is_updater_signature(
+            deps.as_ref(),
+            old_root,
+            new_root,
+            &update.signature.to_vec(),
+        )
+        .unwrap();
         assert!(is_updater_sig)
+    }
+
+    #[tokio::test]
+    async fn rejects_invalid_updater_signature() {
+        let not_updater_privkey =
+            "2111111111111111111111111111111111111111111111111111111111111111";
+        let not_updater: Updater = Updater::from_privkey(not_updater_privkey, LOCAL_DOMAIN);
+
+        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
+
+        let init_msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("creator", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        let old_root = [0u8; 32];
+        let new_root = [1u8; 32];
+        let update = not_updater.sign_update(old_root, new_root).await.unwrap();
+
+        let is_updater_sig = is_updater_signature(
+            deps.as_ref(),
+            old_root,
+            new_root,
+            &update.signature.to_vec(),
+        )
+        .unwrap();
+        assert!(!is_updater_sig)
+    }
+
+    #[tokio::test]
+    async fn emits_failure_on_valid_double_update() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
+        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
+
+        let init_msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("creator", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        let old_root = [0u8; 32];
+        let new_root = [1u8; 32];
+        let bad_new_root = [2u8; 32];
+        let update = updater.sign_update(old_root, new_root).await.unwrap();
+        let double_update = updater.sign_update(old_root, bad_new_root).await.unwrap();
+
+        let double_update_res = try_double_update(
+            deps.as_mut(),
+            old_root,
+            [new_root, bad_new_root],
+            update.signature.to_vec(),
+            double_update.signature.to_vec(),
+            mock_fail_fn,
+        );
+
+        assert_eq!("DoubleUpdate", double_update_res.unwrap().events[0].ty);
+    }
+
+    #[tokio::test]
+    async fn rejects_invalid_double_update() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
+        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
+
+        let init_msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("creator", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        let old_root = [0u8; 32];
+        let new_root = [1u8; 32];
+        let update = updater.sign_update(old_root, new_root).await.unwrap();
+
+        let double_update_res = try_double_update(
+            deps.as_mut(),
+            old_root,
+            [new_root, new_root],
+            update.signature.to_vec(),
+            update.signature.to_vec(),
+            mock_fail_fn,
+        );
+
+        assert!(double_update_res.is_err());
     }
 }

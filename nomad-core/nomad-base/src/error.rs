@@ -11,4 +11,7 @@ pub enum ContractError {
 
     #[error("{0}")]
     OwnableError(#[from] ownable::ContractError),
+
+    #[error("InvalidDoubleUpdate")]
+    InvalidDoubleUpdate {},
 }
