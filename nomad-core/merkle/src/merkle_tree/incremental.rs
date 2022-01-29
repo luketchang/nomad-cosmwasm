@@ -1,10 +1,7 @@
 use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use super::{
-    hash_concat,
-    TREE_DEPTH, ZERO_HASHES, Proof, merkle_root_from_branch,
-};
+use super::{hash_concat, merkle_root_from_branch, Proof, TREE_DEPTH, ZERO_HASHES};
 
 /// An incremental merkle tree, modeled on the eth2 deposit contract
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

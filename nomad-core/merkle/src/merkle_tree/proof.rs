@@ -1,6 +1,6 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use super::{TREE_DEPTH, merkle_root_from_branch};
+use super::{merkle_root_from_branch, TREE_DEPTH};
 
 /// A merkle proof object. The leaf, its path to the root, and its index in the
 /// tree.

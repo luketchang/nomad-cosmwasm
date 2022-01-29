@@ -14,7 +14,6 @@ use sha3::{digest::Update, Digest, Keccak256};
 pub const TREE_DEPTH: usize = 32;
 const EMPTY_SLICE: &[[u8; 32]] = &[];
 
-
 lazy_static! {
     /// A cache of the zero hashes for each layer of the tree.
     pub static ref ZERO_HASHES: [[u8; 32]; TREE_DEPTH + 1] = {
@@ -26,6 +25,7 @@ lazy_static! {
     };
 
     /// The root of an empty tree
+    #[derive(Debug, PartialEq)]
     pub static ref INITIAL_ROOT: [u8; 32] = incremental::IncrementalMerkle::default().root();
 }
 
@@ -40,11 +40,17 @@ pub(super) fn hash_concat(left: impl AsRef<[u8]>, right: impl AsRef<[u8]>) -> [u
             .chain(right.as_ref())
             .finalize()
             .as_slice(),
-    ).into()
+    )
+    .into()
 }
 
 /// Compute a root hash from a leaf and a Merkle proof.
-pub(super) fn merkle_root_from_branch(leaf: [u8; 32], branch: &[[u8; 32]], depth: usize, index: usize) -> [u8; 32] {
+pub(super) fn merkle_root_from_branch(
+    leaf: [u8; 32],
+    branch: &[[u8; 32]],
+    depth: usize,
+    index: usize,
+) -> [u8; 32] {
     assert_eq!(branch.len(), depth, "proof length should equal depth");
 
     let mut current = leaf;
@@ -68,7 +74,7 @@ mod test {
     #[test]
     fn it_calculates_the_initial_root() {
         assert_eq!(
-            *INITIAL_ROOT,
+            H256::from(*INITIAL_ROOT),
             "0x27ae5ba08d7291c96c8cbddcc148bf48a6d68c7974b94356f53754ef6171d757"
                 .parse()
                 .unwrap()

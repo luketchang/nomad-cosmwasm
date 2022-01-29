@@ -7,21 +7,22 @@ pub struct InstantiateMsg {}
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    /// Transfer ownership to address `0x0`
-    RenounceOwnership {},
-    /// Transfer ownership to `newOwner`
-    TransferOwnership { new_owner: String },
+    Insert { element: [u8; 32] },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    /// Returns contract owner
-    Owner {},
+    Root {},
+    Count {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct OwnerResponse {
-    /// The owner
-    pub owner: String,
+pub struct RootResponse {
+    pub root: [u8; 32],
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct CountResponse {
+    pub count: usize,
 }
