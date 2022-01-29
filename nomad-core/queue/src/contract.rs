@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -8,7 +10,7 @@ use lib::Bytes32;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ContainsResponse, LastItemResponse, PeekResponse, IsEmptyResponse, LengthResponse};
-use crate::state::STATE;
+use crate::state::QUEUE;
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:queue";
@@ -21,7 +23,10 @@ pub fn instantiate(
     _info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    let queue = VecDeque::<Bytes32>::new();
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    QUEUE.save(deps.storage, &queue)?;
+
     Ok(Response::new())
 }
 
@@ -41,39 +46,39 @@ pub fn execute(
 }
 
 pub fn try_enqueue(deps: DepsMut, item: Bytes32) -> Result<Response, ContractError> {
-    let mut queue = STATE.load(deps.storage)?;
+    let mut queue = QUEUE.load(deps.storage)?;
     queue.push_back(item);
-    STATE.save(deps.storage, &queue)?;
+    QUEUE.save(deps.storage, &queue)?;
     Ok(Response::new().add_attribute("action", "enqueue"))
 }
 
 pub fn try_dequeue(deps: DepsMut) -> Result<Response, ContractError> {
-    let mut queue = STATE.load(deps.storage)?;
+    let mut queue = QUEUE.load(deps.storage)?;
     let item = queue.pop_front().ok_or(ContractError::QueueEmpty {})?;
-    STATE.save(deps.storage, &queue)?;
+    QUEUE.save(deps.storage, &queue)?;
     Ok(Response::new()
         .add_attribute("action", "dequeue")
         .add_attribute("item", std::str::from_utf8(&item).unwrap()))
 }
 
 pub fn try_enqueue_batch(deps: DepsMut, items: Vec<Bytes32>) -> Result<Response, ContractError> {
-    let mut queue = STATE.load(deps.storage)?;
+    let mut queue = QUEUE.load(deps.storage)?;
     queue.extend(items.iter());
-    STATE.save(deps.storage, &queue)?;
+    QUEUE.save(deps.storage, &queue)?;
     Ok(Response::new().add_attribute("action", "enqueue_batch"))
 }
 
 pub fn try_dequeue_batch(deps: DepsMut, number: u128) -> Result<Response, ContractError> {
-    let mut queue = STATE.load(deps.storage)?;
+    let mut queue = QUEUE.load(deps.storage)?;
     let drained: Vec<Bytes32> = queue.drain(0..(number as usize)).collect();
-    STATE.save(deps.storage, &queue)?;
+    QUEUE.save(deps.storage, &queue)?;
 
     let attributes: Vec<Attribute> = drained
         .iter()
         .enumerate()
         .map(|(i, item)| {
             Attribute::new(
-                format!("item_{}", i),
+                format!("item_{}", i + 1),
                 std::str::from_utf8(item).unwrap().to_owned(),
             )
         })
@@ -94,35 +99,35 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 pub fn query_contains(deps: Deps, item: Bytes32) -> StdResult<ContainsResponse> {
-    let queue = STATE.load(deps.storage)?;
+    let queue = QUEUE.load(deps.storage)?;
     Ok(ContainsResponse {
         contains: queue.contains(&item),
     })
 }
 
 pub fn query_last_item(deps:Deps) -> StdResult<LastItemResponse> {
-    let queue = STATE.load(deps.storage)?;
+    let queue = QUEUE.load(deps.storage)?;
     Ok(LastItemResponse {
         item: queue.back().expect("queue empty").to_owned(),
     })
 }
 
 pub fn query_peek(deps: Deps) -> StdResult<PeekResponse> {
-    let queue = STATE.load(deps.storage)?;
+    let queue = QUEUE.load(deps.storage)?;
     Ok(PeekResponse {
         item: queue.front().expect("queue empty").to_owned(),
     })
 }
 
 pub fn query_is_empty(deps: Deps) -> StdResult<IsEmptyResponse> {
-    let queue = STATE.load(deps.storage)?;
+    let queue = QUEUE.load(deps.storage)?;
     Ok(IsEmptyResponse {
         is_empty: queue.is_empty(),
     })
 }
 
 pub fn query_length(deps: Deps) -> StdResult<LengthResponse> {
-    let queue = STATE.load(deps.storage)?;
+    let queue = QUEUE.load(deps.storage)?;
     Ok(LengthResponse {
         length: queue.len(),
     })
@@ -143,5 +148,81 @@ mod tests {
 
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
+
+        // Length 0
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Length {}).unwrap();
+        let value: LengthResponse = from_binary(&res).unwrap();
+        assert_eq!(0, value.length);
+    }
+
+    #[test]
+    fn enqueues_dequeues_and_query() {
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
+
+        let msg = InstantiateMsg {};
+        let info = mock_info("creator", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Is empty
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::IsEmpty {}).unwrap();
+        let value: IsEmptyResponse = from_binary(&res).unwrap();
+        assert_eq!(true, value.is_empty);
+
+        // Enqueue single
+        let single_item = [0u8; 32];
+        try_enqueue(deps.as_mut(), single_item).unwrap();
+
+        // Is empty
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Length {}).unwrap();
+        let value: LengthResponse = from_binary(&res).unwrap();
+        assert_eq!(1, value.length);
+
+        // Dequeue single
+        let res = try_dequeue(deps.as_mut()).unwrap();
+        let item_attr = res.attributes.iter().find(|&item| item.key == "item").unwrap();
+        assert_eq!(std::str::from_utf8(&single_item).unwrap(), item_attr.value);
+
+        // Enqueue batch 3
+        let items = vec![[0u8; 32], [1u8; 32], [2u8; 32]];
+        try_enqueue_batch(deps.as_mut(), items).unwrap();
+        
+        // Length
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Length {}).unwrap();
+        let value: LengthResponse = from_binary(&res).unwrap();
+        assert_eq!(3, value.length);
+
+        // Is empty
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::IsEmpty {}).unwrap();
+        let value: IsEmptyResponse = from_binary(&res).unwrap();
+        assert_eq!(false, value.is_empty);
+
+        // Peek 
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Peek {}).unwrap();
+        let value: PeekResponse = from_binary(&res).unwrap();
+        assert_eq!([0u8; 32], value.item);
+
+        // Last item
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::LastItem {}).unwrap();
+        let value: LastItemResponse = from_binary(&res).unwrap();
+        assert_eq!([2u8; 32], value.item);
+
+        // Contains
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Contains { item: [1u8; 32] }).unwrap();
+        let value: ContainsResponse = from_binary(&res).unwrap();
+        assert_eq!(true, value.contains);
+
+        // Dequeue batch 2
+        let res = try_dequeue_batch(deps.as_mut(), 2).unwrap();
+        let item_1_attr = res.attributes.iter().find(|&item| item.key == "item_1").unwrap();
+        let item_2_attr = res.attributes.iter().find(|&item| item.key == "item_2").unwrap();
+        assert_eq!(std::str::from_utf8(&[0u8; 32]).unwrap(), item_1_attr.value);
+        assert_eq!(std::str::from_utf8(&[1u8; 32]).unwrap(), item_2_attr.value);
+
+        // Length
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Length {}).unwrap();
+        let value: LengthResponse = from_binary(&res).unwrap();
+        assert_eq!(1, value.length);
     }
 }
