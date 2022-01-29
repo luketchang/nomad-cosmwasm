@@ -1,4 +1,3 @@
-use lib::Bytes32;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -8,16 +7,16 @@ pub struct InstantiateMsg {}
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    Enqueue { item: Bytes32 },
+    Enqueue { item: [u8; 32] },
     Dequeue {},
-    EnqueueBatch { items: Vec<Bytes32> },
+    EnqueueBatch { items: Vec<[u8; 32]> },
     DequeueBatch { number: u128 },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    Contains { item: Bytes32 },
+    Contains { item: [u8; 32] },
     LastItem {},
     Peek {},
     IsEmpty {},
@@ -31,12 +30,12 @@ pub struct ContainsResponse {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct LastItemResponse {
-    pub item: Bytes32,
+    pub item: [u8; 32],
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PeekResponse {
-    pub item: Bytes32,
+    pub item: [u8; 32],
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

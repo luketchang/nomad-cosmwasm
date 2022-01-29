@@ -1,6 +1,5 @@
 use std::collections::VecDeque;
 
 use cw_storage_plus::Item;
-use lib::Bytes32;
 
-pub const QUEUE: Item<VecDeque<Bytes32>> = Item::new("queue");
+pub const QUEUE: Item<VecDeque<[u8; 32]>> = Item::new("queue");

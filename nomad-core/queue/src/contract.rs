@@ -6,7 +6,6 @@ use cosmwasm_std::{
     to_binary, Attribute, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
 };
 use cw2::set_contract_version;
-use lib::Bytes32;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ContainsResponse, LastItemResponse, PeekResponse, IsEmptyResponse, LengthResponse};
@@ -23,7 +22,7 @@ pub fn instantiate(
     _info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    let queue = VecDeque::<Bytes32>::new();
+    let queue = VecDeque::<[u8; 32]>::new();
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     QUEUE.save(deps.storage, &queue)?;
 
@@ -45,7 +44,7 @@ pub fn execute(
     }
 }
 
-pub fn try_enqueue(deps: DepsMut, item: Bytes32) -> Result<Response, ContractError> {
+pub fn try_enqueue(deps: DepsMut, item: [u8; 32]) -> Result<Response, ContractError> {
     let mut queue = QUEUE.load(deps.storage)?;
     queue.push_back(item);
     QUEUE.save(deps.storage, &queue)?;
@@ -61,7 +60,7 @@ pub fn try_dequeue(deps: DepsMut) -> Result<Response, ContractError> {
         .add_attribute("item", std::str::from_utf8(&item).unwrap()))
 }
 
-pub fn try_enqueue_batch(deps: DepsMut, items: Vec<Bytes32>) -> Result<Response, ContractError> {
+pub fn try_enqueue_batch(deps: DepsMut, items: Vec<[u8; 32]>) -> Result<Response, ContractError> {
     let mut queue = QUEUE.load(deps.storage)?;
     queue.extend(items.iter());
     QUEUE.save(deps.storage, &queue)?;
@@ -70,7 +69,7 @@ pub fn try_enqueue_batch(deps: DepsMut, items: Vec<Bytes32>) -> Result<Response,
 
 pub fn try_dequeue_batch(deps: DepsMut, number: u128) -> Result<Response, ContractError> {
     let mut queue = QUEUE.load(deps.storage)?;
-    let drained: Vec<Bytes32> = queue.drain(0..(number as usize)).collect();
+    let drained: Vec<[u8; 32]> = queue.drain(0..(number as usize)).collect();
     QUEUE.save(deps.storage, &queue)?;
 
     let attributes: Vec<Attribute> = drained
@@ -98,7 +97,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-pub fn query_contains(deps: Deps, item: Bytes32) -> StdResult<ContainsResponse> {
+pub fn query_contains(deps: Deps, item: [u8; 32]) -> StdResult<ContainsResponse> {
     let queue = QUEUE.load(deps.storage)?;
     Ok(ContainsResponse {
         contains: queue.contains(&item),

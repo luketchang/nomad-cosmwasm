@@ -14,7 +14,6 @@ use crate::msg::{
     QueryMsg, StateResponse, UpdaterResponse,
 };
 use crate::state::{State, STATE};
-use lib::Bytes32;
 use ownable::contract::{
     instantiate as ownable_instantiate, query_owner, try_renounce_ownership, try_transfer_ownership,
 };
@@ -67,8 +66,8 @@ pub fn execute(
 
 pub fn try_double_update(
     deps: DepsMut,
-    old_root: Bytes32,
-    new_roots: [Bytes32; 2],
+    old_root: [u8; 32],
+    new_roots: [[u8; 32]; 2],
     signature: Vec<u8>,
     signature_2: Vec<u8>,
     fail: fn(deps: DepsMut) -> Result<Response, ContractError>,
@@ -92,8 +91,8 @@ pub fn try_double_update(
 
 fn is_updater_signature(
     deps: Deps,
-    old_root: Bytes32,
-    new_root: Bytes32,
+    old_root: [u8; 32],
+    new_root: [u8; 32],
     signature: &[u8],
 ) -> Result<bool, ContractError> {
     let home_domain_hash = query_home_domain_hash(deps)?.home_domain_hash;
