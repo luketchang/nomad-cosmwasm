@@ -76,10 +76,12 @@ pub fn try_transfer_ownership(
     let new_owner = deps.api.addr_validate(&new_owner)?;
 
     let mut state = STATE.load(deps.storage)?;
-    state.owner = new_owner;
+    state.owner = new_owner.to_owned();
     STATE.save(deps.storage, &state)?;
 
-    Ok(Response::new().add_attribute("action", "transfer_ownership"))
+    Ok(Response::new()
+        .add_attribute("action", "transfer_ownership")
+        .add_attribute("new_owner", new_owner))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -161,9 +163,14 @@ mod tests {
 
         let no_auth_info = mock_info("not_auth", &coins(100, "token"));
         let renounce_msg = ExecuteMsg::RenounceOwnership {};
-        let is_error = execute(deps.as_mut(), mock_env(), no_auth_info.clone(), renounce_msg).is_err();
+        let is_error = execute(
+            deps.as_mut(),
+            mock_env(),
+            no_auth_info.clone(),
+            renounce_msg,
+        )
+        .is_err();
         assert!(is_error);
-
 
         let transfer_msg = ExecuteMsg::TransferOwnership {
             new_owner: "new_owner".to_owned(),

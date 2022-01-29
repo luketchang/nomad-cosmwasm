@@ -1,6 +1,7 @@
+use crate::Bytes32;
+use ethers_core::types::{Address, Signature, H256};
 use ethers_signers::{LocalWallet, Signer};
-use ethers_core::types::{Address, H256, Signature};
-use sha3::{digest::Update as DigestUpdate, Digest, Keccak256,};
+use sha3::{digest::Update as DigestUpdate, Digest, Keccak256};
 
 #[derive(Debug, Clone)]
 pub struct Updater {
@@ -41,7 +42,7 @@ impl Updater {
         )
     }
 
-    fn message_hash(&self, old_root: [u8; 32], new_root: [u8; 32]) -> H256 {
+    fn message_hash(&self, old_root: Bytes32, new_root: Bytes32) -> H256 {
         H256::from_slice(
             Keccak256::new()
                 .chain(self.domain_hash())
@@ -52,7 +53,11 @@ impl Updater {
         )
     }
 
-    pub async fn sign_update(&self, old_root: [u8; 32], new_root: [u8; 32]) -> Result<Update, <LocalWallet as Signer>::Error> {
+    pub async fn sign_update(
+        &self,
+        old_root: Bytes32,
+        new_root: Bytes32,
+    ) -> Result<Update, <LocalWallet as Signer>::Error> {
         let message_hash = self.message_hash(old_root, new_root);
         Ok(Update {
             origin: self.local_domain,

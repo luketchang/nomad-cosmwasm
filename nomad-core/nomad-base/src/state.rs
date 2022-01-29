@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::Addr;
 use cw_storage_plus::Item;
+use lib::Bytes32;
 
 /// States:
 ///   0 - UnInitialized - before initialize function is called
@@ -23,7 +24,7 @@ pub struct State {
     pub local_domain: u32,
     pub updater: Addr,
     pub state: States,
-    pub committed_root: [u8; 32],
+    pub committed_root: Bytes32,
 }
 
 pub const STATE: Item<State> = Item::new("nomad_base_state");

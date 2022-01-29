@@ -14,12 +14,13 @@ use crate::msg::{
     QueryMsg, StateResponse, UpdaterResponse,
 };
 use crate::state::{State, STATE};
+use lib::Bytes32;
 use ownable::contract::{
     instantiate as ownable_instantiate, query_owner, try_renounce_ownership, try_transfer_ownership,
 };
 
 // version info for migration info
-const CONTRACT_NAME: &str = "crates.io:ownable";
+const CONTRACT_NAME: &str = "crates.io:nomad-base";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -66,8 +67,8 @@ pub fn execute(
 
 pub fn try_double_update(
     deps: DepsMut,
-    old_root: [u8; 32],
-    new_roots: [[u8; 32]; 2],
+    old_root: Bytes32,
+    new_roots: [Bytes32; 2],
     signature: Vec<u8>,
     signature_2: Vec<u8>,
     fail: fn(deps: DepsMut) -> Result<Response, ContractError>,
@@ -91,8 +92,8 @@ pub fn try_double_update(
 
 fn is_updater_signature(
     deps: Deps,
-    old_root: [u8; 32],
-    new_root: [u8; 32],
+    old_root: Bytes32,
+    new_root: Bytes32,
     signature: &[u8],
 ) -> Result<bool, ContractError> {
     let home_domain_hash = query_home_domain_hash(deps)?.home_domain_hash;
@@ -174,15 +175,15 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
+    use lib::Updater;
     use ownable::msg::OwnerResponse;
-    use utils::Updater;
 
     const LOCAL_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =
         "1111111111111111111111111111111111111111111111111111111111111111";
     const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
 
-    fn mock_fail_fn(deps: DepsMut) -> Result<Response, ContractError> {
+    fn mock_fail_fn(_deps: DepsMut) -> Result<Response, ContractError> {
         Ok(Response::new())
     }
 

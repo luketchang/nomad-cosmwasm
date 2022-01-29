@@ -1,3 +1,4 @@
+use lib::Bytes32;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -42,13 +43,13 @@ pub enum QueryMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct CommittedRootResponse {
     /// Committed root
-    pub committed_root: [u8; 32],
+    pub committed_root: Bytes32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct HomeDomainHashResponse {
     /// Home domain hash
-    pub home_domain_hash: [u8; 32],
+    pub home_domain_hash: Bytes32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
