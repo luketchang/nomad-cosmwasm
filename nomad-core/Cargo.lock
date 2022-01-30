@@ -573,9 +573,9 @@ dependencies = [
 
 [[package]]
 name = "elliptic-curve"
-version = "0.11.10"
+version = "0.11.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23f80ad035a844638d4ce3d4a27ef4e00f2304e1a37f9f43c6a3c73622f39e79"
+checksum = "25b477563c2bfed38a3b7a60964c49e058b2510ad3f12ba3483fd8f62c2306d6"
 dependencies = [
  "base16ct",
  "crypto-bigint 0.3.2",
@@ -661,7 +661,7 @@ dependencies = [
  "bytes",
  "convert_case",
  "ecdsa",
- "elliptic-curve 0.11.10",
+ "elliptic-curve 0.11.12",
  "ethabi",
  "generic-array 0.14.5",
  "hex",
@@ -688,7 +688,7 @@ dependencies = [
  "async-trait",
  "coins-bip32",
  "coins-bip39",
- "elliptic-curve 0.11.10",
+ "elliptic-curve 0.11.12",
  "eth-keystore",
  "ethers-core",
  "futures-executor",
