@@ -1,11 +1,11 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw2::set_contract_version;
 
 use crate::error::ContractError;
 use crate::merkle_tree::IncrementalMerkle;
-use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RootResponse};
+use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RootResponse, TreeResponse};
 use crate::state::MERKLE;
 
 // version info for migration info
@@ -30,7 +30,7 @@ pub fn instantiate(
 pub fn execute(
     deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
@@ -50,6 +50,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Root {} => to_binary(&query_root(deps)?),
         QueryMsg::Count {} => to_binary(&query_count(deps)?),
+        QueryMsg::Tree {} => to_binary(&query_tree(deps)?),
     }
 }
 
@@ -67,12 +68,17 @@ pub fn query_count(deps: Deps) -> StdResult<CountResponse> {
     })
 }
 
+pub fn query_tree(deps: Deps) -> StdResult<TreeResponse> {
+    let tree = MERKLE.load(deps.storage)?;
+    Ok(TreeResponse { tree })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::merkle_tree::INITIAL_ROOT;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
-    use crate::merkle_tree::INITIAL_ROOT;
 
     #[test]
     fn proper_initialization() {

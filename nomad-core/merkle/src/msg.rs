@@ -1,6 +1,8 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::merkle_tree::IncrementalMerkle;
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {}
 
@@ -15,6 +17,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     Root {},
     Count {},
+    Tree {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -25,4 +28,9 @@ pub struct RootResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct CountResponse {
     pub count: usize,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct TreeResponse {
+    pub tree: IncrementalMerkle,
 }

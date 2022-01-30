@@ -8,7 +8,10 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ContainsResponse, LastItemResponse, PeekResponse, IsEmptyResponse, LengthResponse};
+use crate::msg::{
+    ContainsResponse, ExecuteMsg, InstantiateMsg, IsEmptyResponse, LastItemResponse,
+    LengthResponse, PeekResponse, QueryMsg,
+};
 use crate::state::QUEUE;
 
 // version info for migration info
@@ -104,10 +107,10 @@ pub fn query_contains(deps: Deps, item: [u8; 32]) -> StdResult<ContainsResponse>
     })
 }
 
-pub fn query_last_item(deps:Deps) -> StdResult<LastItemResponse> {
+pub fn query_last_item(deps: Deps) -> StdResult<LastItemResponse> {
     let queue = QUEUE.load(deps.storage)?;
     Ok(LastItemResponse {
-        item: queue.back().expect("queue empty").to_owned(),
+        item: queue.back().map_or([0u8; 32], |item| item.clone()),
     })
 }
 
@@ -152,6 +155,11 @@ mod tests {
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Length {}).unwrap();
         let value: LengthResponse = from_binary(&res).unwrap();
         assert_eq!(0, value.length);
+
+        // Last item defaults to 0x0
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::LastItem {}).unwrap();
+        let value: LastItemResponse = from_binary(&res).unwrap();
+        assert_eq!([0u8; 32], value.item);
     }
 
     #[test]
@@ -180,13 +188,17 @@ mod tests {
 
         // Dequeue single
         let res = try_dequeue(deps.as_mut()).unwrap();
-        let item_attr = res.attributes.iter().find(|&item| item.key == "item").unwrap();
+        let item_attr = res
+            .attributes
+            .iter()
+            .find(|&item| item.key == "item")
+            .unwrap();
         assert_eq!(std::str::from_utf8(&single_item).unwrap(), item_attr.value);
 
         // Enqueue batch 3
         let items = vec![[0u8; 32], [1u8; 32], [2u8; 32]];
         try_enqueue_batch(deps.as_mut(), items).unwrap();
-        
+
         // Length
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Length {}).unwrap();
         let value: LengthResponse = from_binary(&res).unwrap();
@@ -197,7 +209,7 @@ mod tests {
         let value: IsEmptyResponse = from_binary(&res).unwrap();
         assert_eq!(false, value.is_empty);
 
-        // Peek 
+        // Peek
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Peek {}).unwrap();
         let value: PeekResponse = from_binary(&res).unwrap();
         assert_eq!([0u8; 32], value.item);
@@ -208,14 +220,27 @@ mod tests {
         assert_eq!([2u8; 32], value.item);
 
         // Contains
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::Contains { item: [1u8; 32] }).unwrap();
+        let res = query(
+            deps.as_ref(),
+            mock_env(),
+            QueryMsg::Contains { item: [1u8; 32] },
+        )
+        .unwrap();
         let value: ContainsResponse = from_binary(&res).unwrap();
         assert_eq!(true, value.contains);
 
         // Dequeue batch 2
         let res = try_dequeue_batch(deps.as_mut(), 2).unwrap();
-        let item_1_attr = res.attributes.iter().find(|&item| item.key == "item_1").unwrap();
-        let item_2_attr = res.attributes.iter().find(|&item| item.key == "item_2").unwrap();
+        let item_1_attr = res
+            .attributes
+            .iter()
+            .find(|&item| item.key == "item_1")
+            .unwrap();
+        let item_2_attr = res
+            .attributes
+            .iter()
+            .find(|&item| item.key == "item_2")
+            .unwrap();
         assert_eq!(std::str::from_utf8(&[0u8; 32]).unwrap(), item_1_attr.value);
         assert_eq!(std::str::from_utf8(&[1u8; 32]).unwrap(), item_2_attr.value);
 

@@ -124,14 +124,14 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-fn query_committed_root(deps: Deps) -> StdResult<CommittedRootResponse> {
+pub fn query_committed_root(deps: Deps) -> StdResult<CommittedRootResponse> {
     let state = STATE.load(deps.storage)?;
     Ok(CommittedRootResponse {
         committed_root: state.committed_root,
     })
 }
 
-fn query_home_domain_hash(deps: Deps) -> StdResult<HomeDomainHashResponse> {
+pub fn query_home_domain_hash(deps: Deps) -> StdResult<HomeDomainHashResponse> {
     let state = STATE.load(deps.storage)?;
     let domain = state.local_domain;
 
@@ -148,21 +148,21 @@ fn query_home_domain_hash(deps: Deps) -> StdResult<HomeDomainHashResponse> {
     })
 }
 
-fn query_local_domain(deps: Deps) -> StdResult<LocalDomainResponse> {
+pub fn query_local_domain(deps: Deps) -> StdResult<LocalDomainResponse> {
     let state = STATE.load(deps.storage)?;
     Ok(LocalDomainResponse {
         local_domain: state.local_domain,
     })
 }
 
-fn query_state(deps: Deps) -> StdResult<StateResponse> {
+pub fn query_state(deps: Deps) -> StdResult<StateResponse> {
     let state = STATE.load(deps.storage)?;
     Ok(StateResponse {
         state: state.state as u8,
     })
 }
 
-fn query_updater(deps: Deps) -> StdResult<UpdaterResponse> {
+pub fn query_updater(deps: Deps) -> StdResult<UpdaterResponse> {
     let state = STATE.load(deps.storage)?;
     Ok(UpdaterResponse {
         updater: state.updater.to_string(),
@@ -174,8 +174,8 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
-    use test_utils::Updater;
     use ownable::msg::OwnerResponse;
+    use test_utils::Updater;
 
     const LOCAL_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =

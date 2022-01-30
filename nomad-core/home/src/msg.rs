@@ -8,19 +8,19 @@ pub struct InstantiateMsg {
 }
 
 impl From<InstantiateMsg> for ownable::msg::InstantiateMsg {
-    fn from(msg: InstantiateMsg) -> Self {
+    fn from(_: InstantiateMsg) -> Self {
         ownable::msg::InstantiateMsg {}
     }
 }
 
 impl From<InstantiateMsg> for queue::msg::InstantiateMsg {
-    fn from(msg: InstantiateMsg) -> Self {
+    fn from(_: InstantiateMsg) -> Self {
         queue::msg::InstantiateMsg {}
     }
 }
 
 impl From<InstantiateMsg> for merkle::msg::InstantiateMsg {
-    fn from(msg: InstantiateMsg) -> Self {
+    fn from(_: InstantiateMsg) -> Self {
         merkle::msg::InstantiateMsg {}
     }
 }
@@ -37,7 +37,7 @@ impl From<InstantiateMsg> for nomad_base::msg::InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    Dispatch { 
+    Dispatch {
         destination_domain: u32,
         recipient_address: String,
         message: Vec<u8>,
@@ -51,12 +51,18 @@ pub enum ExecuteMsg {
     ImproperUpdate {
         old_root: [u8; 32],
         new_root: [u8; 32],
-        signature: Vec<u8>
+        signature: Vec<u8>,
     },
     RenounceOwnership {},
-    TransferOwnership { new_owner: String },
-    SetUpdater { updater: String },
-    SetUpdaterManager { updater_manager: String },
+    TransferOwnership {
+        new_owner: String,
+    },
+    SetUpdater {
+        updater: String,
+    },
+    SetUpdaterManager {
+        updater_manager: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -77,4 +83,20 @@ pub enum QueryMsg {
     Tree {},
     Updater {},
     UpdaterManager {},
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct NoncesResponse {
+    pub next_nonce: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct SuggestUpdateResponse {
+    pub committed_root: [u8; 32],
+    pub new_root: [u8; 32],
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct UpdaterManagerResponse {
+    pub updater_manager: String,
 }
