@@ -2,7 +2,37 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct InstantiateMsg {}
+pub struct InstantiateMsg {
+    pub local_domain: u32,
+    pub updater: String,
+}
+
+impl From<InstantiateMsg> for ownable::msg::InstantiateMsg {
+    fn from(msg: InstantiateMsg) -> Self {
+        ownable::msg::InstantiateMsg {}
+    }
+}
+
+impl From<InstantiateMsg> for queue::msg::InstantiateMsg {
+    fn from(msg: InstantiateMsg) -> Self {
+        queue::msg::InstantiateMsg {}
+    }
+}
+
+impl From<InstantiateMsg> for merkle::msg::InstantiateMsg {
+    fn from(msg: InstantiateMsg) -> Self {
+        merkle::msg::InstantiateMsg {}
+    }
+}
+
+impl From<InstantiateMsg> for nomad_base::msg::InstantiateMsg {
+    fn from(msg: InstantiateMsg) -> Self {
+        nomad_base::msg::InstantiateMsg {
+            local_domain: msg.local_domain,
+            updater: msg.updater,
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]

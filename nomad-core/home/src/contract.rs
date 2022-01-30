@@ -13,11 +13,16 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    deps: DepsMut,
-    _env: Env,
+    mut deps: DepsMut,
+    env: Env,
     info: MessageInfo,
-    _msg: InstantiateMsg,
+    msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    ownable::contract::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
+    queue::contract::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
+    merkle::contract::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
+    nomad_base::contract::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
+    
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new())
 }
@@ -44,11 +49,19 @@ mod tests {
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
 
+    const LOCAL_DOMAIN: u32 = 1000;
+    const UPDATER_PRIVKEY: &str =
+        "1111111111111111111111111111111111111111111111111111111111111111";
+    const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
+
     #[test]
     fn proper_initialization() {
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
-        let msg = InstantiateMsg {};
+        let msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
         let info = mock_info("creator", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();

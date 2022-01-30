@@ -6,6 +6,15 @@ pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
 
-    #[error("Unauthorized")]
-    Unauthorized {},
+    #[error("{0}")]
+    OwnableError(#[from] ownable::ContractError),
+
+    #[error("{0}")]
+    MerkleError(#[from] merkle::ContractError),
+
+    #[error("{0}")]
+    QueueError(#[from] queue::ContractError),
+
+    #[error("{0}")]
+    NomadBaseError(#[from] nomad_base::ContractError),
 }
