@@ -3,9 +3,10 @@ cargo-features = ["edition2021"]
 [workspace]
 
 members = [
+    "home",
     "nomad-base",
     "ownable",
     "queue",
     "merkle",
-    "lib",
+    "test-utils",
 ]

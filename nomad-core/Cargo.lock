@@ -846,6 +846,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "home"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus",
+ "cw2",
+ "ethers-core",
+ "ethers-signers",
+ "ownable",
+ "schemars",
+ "serde",
+ "sha3 0.10.0",
+ "test-utils",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "impl-codec"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -924,16 +944,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
-name = "lib"
-version = "0.1.0"
-dependencies = [
- "ethers-core",
- "ethers-signers",
- "schemars",
- "sha3 0.10.0",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -959,7 +969,6 @@ dependencies = [
  "cw2",
  "ethers-core",
  "lazy_static",
- "lib",
  "schemars",
  "serde",
  "sha3 0.10.0",
@@ -977,11 +986,11 @@ dependencies = [
  "cw2",
  "ethers-core",
  "ethers-signers",
- "lib",
  "ownable",
  "schemars",
  "serde",
  "sha3 0.10.0",
+ "test-utils",
  "thiserror",
  "tokio",
 ]
@@ -1137,7 +1146,6 @@ dependencies = [
  "cosmwasm-storage",
  "cw-storage-plus",
  "cw2",
- "lib",
  "schemars",
  "serde",
  "thiserror",
@@ -1461,6 +1469,16 @@ name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
+
+[[package]]
+name = "test-utils"
+version = "0.1.0"
+dependencies = [
+ "ethers-core",
+ "ethers-signers",
+ "schemars",
+ "sha3 0.10.0",
+]
 
 [[package]]
 name = "thiserror"

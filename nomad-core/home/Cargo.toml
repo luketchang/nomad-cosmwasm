@@ -1,5 +1,5 @@
 [package]
-name = "nomad-base"
+name = "home"
 version = "0.1.0"
 authors = ["Luke Tchang <ltchang@stanford.edu>"]
 edition = "2018"
@@ -43,7 +43,6 @@ tokio = { version = "1.0.1", features = ["rt", "macros"] }
 
 ownable = { path = "../ownable", features = ["library"] }
 test-utils = { path = "../test-utils" }
-
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta" }

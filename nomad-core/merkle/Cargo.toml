@@ -40,7 +40,5 @@ lazy_static = "*"
 sha3 = "0.10.0"
 ethers-core = "0.6.2"
 
-lib = { path = "../lib" }
-
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta" }
