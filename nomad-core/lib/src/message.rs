@@ -1,36 +1,36 @@
 use ethers_core::{types::H256, utils::keccak256};
-use schemars::JsonSchema;
+
 use serde::{Deserialize, Serialize};
 
-use crate::NomadError;
 use crate::traits::{Decode, Encode};
+use crate::NomadError;
 
 const NOMAD_MESSAGE_PREFIX_LEN: usize = 76;
 
 /// A full Nomad message between chains
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct NomadMessage {
     /// 4   SLIP-44 ID
     pub origin: u32,
     /// 32  Address in home convention
-    pub sender: [u8; 32],
+    pub sender: H256,
     /// 4   Count of all previous messages to destination
     pub nonce: u32,
     /// 4   SLIP-44 ID
     pub destination: u32,
     /// 32  Address in destination convention
-    pub recipient: [u8; 32],
+    pub recipient: H256,
     /// 0+  Message contents
     pub body: Vec<u8>,
 }
 
 /// A partial Nomad message between chains
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Message {
     /// 4   SLIP-44 ID
     pub destination: u32,
     /// 32  Address in destination convention
-    pub recipient: [u8; 32],
+    pub recipient: H256,
     /// 0+  Message contents
     pub body: Vec<u8>,
 }
@@ -82,9 +82,9 @@ impl Decode for NomadMessage {
 
         Ok(Self {
             origin: u32::from_be_bytes(origin),
-            sender,
+            sender: H256::from(sender),
             destination: u32::from_be_bytes(destination),
-            recipient,
+            recipient: H256::from(recipient),
             nonce: u32::from_be_bytes(nonce),
             body,
         })

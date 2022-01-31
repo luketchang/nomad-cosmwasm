@@ -6,6 +6,7 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use lib::{addr_to_bytes32, NomadMessage};
+use ethers_core::types::H256;
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -123,7 +124,7 @@ pub fn try_dispatch(
         body: message,
     };
 
-    let hash: [u8; 32] = message.to_leaf().into();
+    let hash: H256 = message.to_leaf().into();
     merkle::contract::try_insert(deps.branch(), hash)?;
 
     let root = merkle::contract::query_root(deps.as_ref())?.root;
@@ -134,8 +135,8 @@ pub fn try_dispatch(
 
 pub fn try_update(
     mut deps: DepsMut,
-    committed_root: [u8; 32],
-    new_root: [u8; 32],
+    committed_root: H256,
+    new_root: H256,
     signature: Vec<u8>,
 ) -> Result<Response, ContractError> {
     if try_improper_update(deps.branch(), committed_root, new_root, &signature).is_ok() {
@@ -144,7 +145,7 @@ pub fn try_update(
 
     loop {
         let next_res = queue::contract::try_dequeue(deps.branch())?;
-        let next: [u8; 32] = from_binary(&next_res.data.unwrap())?;
+        let next: H256 = from_binary(&next_res.data.unwrap())?;
         if next == new_root {
             break;
         }
@@ -159,17 +160,17 @@ pub fn try_update(
             .add_attribute("local_domain", local_domain.to_string())
             .add_attribute(
                 "committed_root",
-                std::str::from_utf8(&committed_root).unwrap(),
+                committed_root.to_string(),
             )
-            .add_attribute("new_root", std::str::from_utf8(&new_root).unwrap())
+            .add_attribute("new_root", new_root.to_string())
             .add_attribute("signature", String::from_utf8_lossy(&signature)),
     ))
 }
 
 pub fn try_improper_update(
     deps: DepsMut,
-    old_root: [u8; 32],
-    new_root: [u8; 32],
+    old_root: H256,
+    new_root: H256,
     signature: &[u8],
 ) -> Result<Response, ContractError> {
     if !nomad_base::contract::is_updater_signature(deps.as_ref(), old_root, new_root, signature)? {
@@ -180,8 +181,8 @@ pub fn try_improper_update(
         fail(deps)?;
         return Ok(Response::new().add_event(
             Event::new("ImproperUpdate")
-                .add_attribute("old_root", std::str::from_utf8(&old_root).unwrap())
-                .add_attribute("new_root", std::str::from_utf8(&new_root).unwrap())
+                .add_attribute("old_root", old_root.to_string())
+                .add_attribute("new_root", new_root.to_string())
                 .add_attribute("signature", String::from_utf8_lossy(signature)),
         ));
     }
@@ -300,8 +301,8 @@ mod tests {
         // Suggested update 0x0 and 0x0
         let res = query(deps.as_ref(), mock_env(), QueryMsg::SuggestUpdate {}).unwrap();
         let value: SuggestUpdateResponse = from_binary(&res).unwrap();
-        assert_eq!([0u8; 32], value.committed_root);
-        assert_eq!([0u8; 32], value.new_root);
+        assert_eq!(H256::zero(), value.committed_root);
+        assert_eq!(H256::zero(), value.new_root);
 
         // ------ NOMAD_BASE ------
         // State
@@ -334,6 +335,6 @@ mod tests {
         // Last item defaults to 0x0
         let res = query(deps.as_ref(), mock_env(), QueryMsg::QueueEnd {}).unwrap();
         let value: LastItemResponse = from_binary(&res).unwrap();
-        assert_eq!([0u8; 32], value.item);
+        assert_eq!(H256::zero(), value.item);
     }
 }

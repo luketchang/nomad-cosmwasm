@@ -1,18 +1,18 @@
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ethers_core::types::H256;
 
 use super::{hash_concat, merkle_root_from_branch, Proof, TREE_DEPTH, ZERO_HASHES};
 
 /// An incremental merkle tree, modeled on the eth2 deposit contract
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct IncrementalMerkle {
-    branch: [[u8; 32]; TREE_DEPTH],
+    branch: [H256; TREE_DEPTH],
     count: usize,
 }
 
 impl Default for IncrementalMerkle {
     fn default() -> Self {
-        let mut branch: [[u8; 32]; TREE_DEPTH] = Default::default();
+        let mut branch: [H256; TREE_DEPTH] = Default::default();
         branch
             .iter_mut()
             .enumerate()
@@ -23,7 +23,7 @@ impl Default for IncrementalMerkle {
 
 impl IncrementalMerkle {
     /// Ingest a leaf into the tree.
-    pub fn ingest(&mut self, element: [u8; 32]) {
+    pub fn ingest(&mut self, element: H256) {
         let mut node = element;
         assert!(self.count < u32::MAX as usize);
         self.count += 1;
@@ -39,8 +39,8 @@ impl IncrementalMerkle {
     }
 
     /// Calculate the current tree root
-    pub fn root(&self) -> [u8; 32] {
-        let mut node: [u8; 32] = Default::default();
+    pub fn root(&self) -> H256 {
+        let mut node: H256 = Default::default();
         let mut size = self.count;
 
         self.branch.iter().enumerate().for_each(|(i, elem)| {
@@ -61,12 +61,12 @@ impl IncrementalMerkle {
     }
 
     /// Get the leading-edge branch.
-    pub fn branch(&self) -> &[[u8; 32]; TREE_DEPTH] {
+    pub fn branch(&self) -> &[H256; TREE_DEPTH] {
         &self.branch
     }
 
     /// Calculate the root of a branch for incremental given the index
-    pub fn branch_root(item: [u8; 32], branch: [[u8; 32]; TREE_DEPTH], index: usize) -> [u8; 32] {
+    pub fn branch_root(item: H256, branch: [H256; TREE_DEPTH], index: usize) -> H256 {
         merkle_root_from_branch(item, &branch, 32, index)
     }
 

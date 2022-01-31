@@ -2,6 +2,7 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw2::set_contract_version;
+use ethers_core::types::H256;
 
 use crate::error::ContractError;
 use crate::merkle_tree::IncrementalMerkle;
@@ -16,7 +17,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     let merkle = IncrementalMerkle::default();
@@ -38,11 +39,11 @@ pub fn execute(
     }
 }
 
-pub fn try_insert(deps: DepsMut, element: [u8; 32]) -> Result<Response, ContractError> {
+pub fn try_insert(deps: DepsMut, element: H256) -> Result<Response, ContractError> {
     let mut merkle = MERKLE.load(deps.storage)?;
     merkle.ingest(element);
     MERKLE.save(deps.storage, &merkle)?;
-    Ok(Response::new().add_attribute("element", std::str::from_utf8(&element).unwrap()))
+    Ok(Response::new().add_attribute("element", element.to_string()))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

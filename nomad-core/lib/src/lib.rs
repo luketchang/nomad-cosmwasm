@@ -1,5 +1,5 @@
 use cosmwasm_std::Addr;
-use ethers_core::types::SignatureError;
+use ethers_core::types::{H256, SignatureError};
 use std::io::Write;
 
 mod message;
@@ -20,7 +20,7 @@ pub enum NomadError {
     IoError(#[from] std::io::Error),
 }
 
-pub fn addr_to_bytes32(address: Addr) -> [u8; 32] {
+pub fn addr_to_bytes32(address: Addr) -> H256 {
     let addr = address.as_bytes().to_owned();
     let length = addr.len();
     if length > 32 {
@@ -34,5 +34,6 @@ pub fn addr_to_bytes32(address: Addr) -> [u8; 32] {
 
     assert!(buf.len() == 32);
 
-    buf.try_into().unwrap()
+    let sized: [u8; 32] = buf.try_into().unwrap();
+    H256::from(sized)
 }

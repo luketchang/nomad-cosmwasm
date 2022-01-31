@@ -1,5 +1,5 @@
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ethers_core::types::H256;
 
 use cosmwasm_std::Addr;
 use cw_storage_plus::Item;
@@ -11,19 +11,19 @@ use cw_storage_plus::Item;
 ///   1 - Active - as long as the contract has not become fraudulent
 ///   2 - Failed - after a valid fraud proof has been submitted;
 ///   contract will no longer accept updates or new messages
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum States {
     UnInitialized,
     Active,
     Failed,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct State {
     pub local_domain: u32,
     pub updater: Addr,
     pub state: States,
-    pub committed_root: [u8; 32],
+    pub committed_root: H256,
 }
 
 pub const STATE: Item<State> = Item::new("nomad_base_state");

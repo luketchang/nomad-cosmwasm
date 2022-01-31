@@ -1171,6 +1171,7 @@ dependencies = [
  "cosmwasm-storage",
  "cw-storage-plus",
  "cw2",
+ "ethers-core",
  "schemars",
  "serde",
  "thiserror",

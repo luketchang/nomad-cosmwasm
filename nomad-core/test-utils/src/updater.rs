@@ -41,7 +41,7 @@ impl Updater {
         )
     }
 
-    fn message_hash(&self, old_root: [u8; 32], new_root: [u8; 32]) -> H256 {
+    fn message_hash(&self, old_root: H256, new_root: H256) -> H256 {
         H256::from_slice(
             Keccak256::new()
                 .chain(self.domain_hash())
@@ -54,8 +54,8 @@ impl Updater {
 
     pub async fn sign_update(
         &self,
-        old_root: [u8; 32],
-        new_root: [u8; 32],
+        old_root: H256,
+        new_root: H256,
     ) -> Result<Update, <LocalWallet as Signer>::Error> {
         let message_hash = self.message_hash(old_root, new_root);
         Ok(Update {

@@ -12,11 +12,11 @@ use sha3::{digest::Update, Digest, Keccak256};
 
 /// Tree depth
 pub const TREE_DEPTH: usize = 32;
-const EMPTY_SLICE: &[[u8; 32]] = &[];
+const EMPTY_SLICE: &[H256] = &[];
 
 lazy_static! {
     /// A cache of the zero hashes for each layer of the tree.
-    pub static ref ZERO_HASHES: [[u8; 32]; TREE_DEPTH + 1] = {
+    pub static ref ZERO_HASHES: [H256; TREE_DEPTH + 1] = {
         let mut hashes = [H256::zero().into(); TREE_DEPTH + 1];
         for i in 0..TREE_DEPTH {
             hashes[i + 1] = hash_concat(hashes[i], hashes[i]);
@@ -26,14 +26,14 @@ lazy_static! {
 
     /// The root of an empty tree
     #[derive(Debug, PartialEq)]
-    pub static ref INITIAL_ROOT: [u8; 32] = incremental::IncrementalMerkle::default().root();
+    pub static ref INITIAL_ROOT: H256 = incremental::IncrementalMerkle::default().root();
 }
 
-pub(super) fn hash(preimage: impl AsRef<[u8]>) -> [u8; 32] {
+pub(super) fn hash(preimage: impl AsRef<[u8]>) -> H256 {
     H256::from_slice(Keccak256::digest(preimage.as_ref()).as_slice()).into()
 }
 
-pub(super) fn hash_concat(left: impl AsRef<[u8]>, right: impl AsRef<[u8]>) -> [u8; 32] {
+pub(super) fn hash_concat(left: impl AsRef<[u8]>, right: impl AsRef<[u8]>) -> H256 {
     H256::from_slice(
         Keccak256::new()
             .chain(left.as_ref())
@@ -46,11 +46,11 @@ pub(super) fn hash_concat(left: impl AsRef<[u8]>, right: impl AsRef<[u8]>) -> [u
 
 /// Compute a root hash from a leaf and a Merkle proof.
 pub(super) fn merkle_root_from_branch(
-    leaf: [u8; 32],
-    branch: &[[u8; 32]],
+    leaf: H256,
+    branch: &[H256],
     depth: usize,
     index: usize,
-) -> [u8; 32] {
+) -> H256 {
     assert_eq!(branch.len(), depth, "proof length should equal depth");
 
     let mut current = leaf;

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use ethers_core::types::H256;
 
 use super::{merkle_root_from_branch, TREE_DEPTH};
 
@@ -7,16 +8,16 @@ use super::{merkle_root_from_branch, TREE_DEPTH};
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
 pub struct Proof {
     /// The leaf
-    pub leaf: [u8; 32],
+    pub leaf: H256,
     /// The index
     pub index: usize,
     /// The merkle branch
-    pub path: [[u8; 32]; TREE_DEPTH],
+    pub path: [H256; TREE_DEPTH],
 }
 
 impl Proof {
     /// Calculate the merkle root produced by evaluating the proof
-    pub fn root(&self) -> [u8; 32] {
+    pub fn root(&self) -> H256 {
         merkle_root_from_branch(self.leaf, self.path.as_ref(), TREE_DEPTH, self.index)
     }
 }

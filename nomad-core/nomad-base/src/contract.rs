@@ -13,7 +13,7 @@ use crate::msg::{
     CommittedRootResponse, ExecuteMsg, HomeDomainHashResponse, InstantiateMsg, LocalDomainResponse,
     QueryMsg, StateResponse, UpdaterResponse,
 };
-use crate::state::{State, STATE, States};
+use crate::state::{State, States, STATE};
 use ownable::contract::{
     instantiate as ownable_instantiate, query_owner, try_renounce_ownership, try_transfer_ownership,
 };
@@ -37,7 +37,7 @@ pub fn instantiate(
         local_domain: msg.local_domain,
         updater,
         state: crate::state::States::Active,
-        committed_root: [0u8; 32],
+        committed_root: H256::zero(),
     };
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -66,8 +66,8 @@ pub fn execute(
 
 pub fn try_double_update(
     deps: DepsMut,
-    old_root: [u8; 32],
-    new_roots: [[u8; 32]; 2],
+    old_root: H256,
+    new_roots: [H256; 2],
     signature: Vec<u8>,
     signature_2: Vec<u8>,
     fail: fn(deps: DepsMut) -> Result<Response, ContractError>,
@@ -79,8 +79,8 @@ pub fn try_double_update(
         fail(deps)?;
         return Ok(Response::new().add_event(
             Event::new("DoubleUpdate")
-                .add_attribute("old_root", std::str::from_utf8(&new_roots[0]).unwrap())
-                .add_attribute("new_root", std::str::from_utf8(&new_roots[1]).unwrap())
+                .add_attribute("old_root", new_roots[0].to_string())
+                .add_attribute("new_root", new_roots[1].to_string())
                 .add_attribute("signature", String::from_utf8_lossy(&signature))
                 .add_attribute("signature_2", String::from_utf8_lossy(&signature_2)),
         ));
@@ -91,8 +91,8 @@ pub fn try_double_update(
 
 pub fn is_updater_signature(
     deps: Deps,
-    old_root: [u8; 32],
-    new_root: [u8; 32],
+    old_root: H256,
+    new_root: H256,
     signature: &[u8],
 ) -> Result<bool, ContractError> {
     let home_domain_hash = query_home_domain_hash(deps)?.home_domain_hash;
@@ -120,7 +120,11 @@ pub fn set_failed(deps: DepsMut) -> Result<Response, ContractError> {
     Ok(Response::new())
 }
 
-pub fn set_updater(deps: DepsMut, info: MessageInfo, updater: String) -> Result<Response, ContractError> {
+pub fn set_updater(
+    deps: DepsMut,
+    info: MessageInfo,
+    updater: String,
+) -> Result<Response, ContractError> {
     ownable::contract::only_owner(deps.as_ref(), info)?;
     let updater_addr = deps.api.addr_validate(&updater)?;
 
@@ -131,7 +135,7 @@ pub fn set_updater(deps: DepsMut, info: MessageInfo, updater: String) -> Result<
     Ok(Response::new())
 }
 
-pub fn set_committed_root(deps: DepsMut, root: [u8; 32]) -> Result<Response, ContractError> {
+pub fn set_committed_root(deps: DepsMut, root: H256) -> Result<Response, ContractError> {
     let mut state = STATE.load(deps.storage)?;
     state.committed_root = root;
     STATE.save(deps.storage, &state)?;
@@ -262,8 +266,8 @@ mod tests {
         let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
-        let old_root = [0u8; 32];
-        let new_root = [1u8; 32];
+        let old_root = H256::zero();
+        let new_root = H256::repeat_byte(1);
         let update = updater.sign_update(old_root, new_root).await.unwrap();
 
         let is_updater_sig = is_updater_signature(
@@ -293,8 +297,8 @@ mod tests {
         let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
-        let old_root = [0u8; 32];
-        let new_root = [1u8; 32];
+        let old_root = H256::zero();
+        let new_root = H256::repeat_byte(1);
         let update = not_updater.sign_update(old_root, new_root).await.unwrap();
 
         let is_updater_sig = is_updater_signature(
@@ -322,9 +326,9 @@ mod tests {
         let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
-        let old_root = [0u8; 32];
-        let new_root = [1u8; 32];
-        let bad_new_root = [2u8; 32];
+        let old_root = H256::zero();
+        let new_root = H256::repeat_byte(1);
+        let bad_new_root = H256::repeat_byte(2);
         let update = updater.sign_update(old_root, new_root).await.unwrap();
         let double_update = updater.sign_update(old_root, bad_new_root).await.unwrap();
 
@@ -355,8 +359,8 @@ mod tests {
         let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
-        let old_root = [0u8; 32];
-        let new_root = [1u8; 32];
+        let old_root = H256::zero();
+        let new_root = H256::repeat_byte(1);
         let update = updater.sign_update(old_root, new_root).await.unwrap();
 
         let double_update_res = try_double_update(

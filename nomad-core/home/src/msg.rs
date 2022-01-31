@@ -1,7 +1,7 @@
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ethers_core::types::H256;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InstantiateMsg {
     pub local_domain: u32,
     pub updater: String,
@@ -34,7 +34,7 @@ impl From<InstantiateMsg> for nomad_base::msg::InstantiateMsg {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     Dispatch {
@@ -43,19 +43,19 @@ pub enum ExecuteMsg {
         message: Vec<u8>,
     },
     Update {
-        committed_root: [u8; 32],
-        new_root: [u8; 32],
+        committed_root: H256,
+        new_root: H256,
         signature: Vec<u8>,
     },
     DoubleUpdate {
-        old_root: [u8; 32],
-        new_roots: [[u8; 32]; 2],
+        old_root: H256,
+        new_roots: [H256; 2],
         signature: Vec<u8>,
         signature_2: Vec<u8>,
     },
     ImproperUpdate {
-        old_root: [u8; 32],
-        new_root: [u8; 32],
+        old_root: H256,
+        new_root: H256,
         signature: Vec<u8>,
     },
     SetUpdater {
@@ -70,7 +70,7 @@ pub enum ExecuteMsg {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     CommittedRoot {},
@@ -79,7 +79,7 @@ pub enum QueryMsg {
     LocalDomain {},
     Nonces { domain: u32 },
     Owner {},
-    QueueContains { item: [u8; 32] },
+    QueueContains { item: H256 },
     QueueEnd {},
     QueueLength {},
     Root {},
@@ -90,18 +90,18 @@ pub enum QueryMsg {
     UpdaterManager {},
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct NoncesResponse {
     pub next_nonce: u32,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct SuggestUpdateResponse {
-    pub committed_root: [u8; 32],
-    pub new_root: [u8; 32],
+    pub committed_root: H256,
+    pub new_root: H256,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct UpdaterManagerResponse {
     pub updater_manager: String,
 }

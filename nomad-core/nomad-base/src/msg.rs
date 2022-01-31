@@ -1,7 +1,7 @@
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ethers_core::types::H256;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InstantiateMsg {
     pub local_domain: u32,
     pub updater: String,
@@ -13,7 +13,7 @@ impl From<InstantiateMsg> for ownable::msg::InstantiateMsg {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     /// Transfer ownership to address `0x0` (inherited from ownable)
@@ -22,7 +22,7 @@ pub enum ExecuteMsg {
     TransferOwnership { new_owner: String },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     /// Return current committed root
@@ -39,31 +39,31 @@ pub enum QueryMsg {
     Owner {},
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct CommittedRootResponse {
     /// Committed root
-    pub committed_root: [u8; 32],
+    pub committed_root: H256,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct HomeDomainHashResponse {
     /// Home domain hash
-    pub home_domain_hash: [u8; 32],
+    pub home_domain_hash: H256,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct LocalDomainResponse {
     /// Local domain
     pub local_domain: u32,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct StateResponse {
     /// State
     pub state: u8,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct UpdaterResponse {
     /// Updater address
     pub updater: String,
