@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use ethers_core::types::H256;
+use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::Addr;
 use cw_storage_plus::Item;

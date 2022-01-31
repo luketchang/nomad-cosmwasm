@@ -77,12 +77,7 @@ pub fn try_dequeue_batch(deps: DepsMut, number: u128) -> Result<Response, Contra
     let attributes: Vec<Attribute> = drained
         .iter()
         .enumerate()
-        .map(|(i, item)| {
-            Attribute::new(
-                format!("item_{}", i + 1),
-                item.to_string(),
-            )
-        })
+        .map(|(i, item)| Attribute::new(format!("item_{}", i + 1), item.to_string()))
         .collect();
 
     Ok(Response::new().add_attributes(attributes))
@@ -218,7 +213,9 @@ mod tests {
         let res = query(
             deps.as_ref(),
             mock_env(),
-            QueryMsg::Contains { item: H256::repeat_byte(1) },
+            QueryMsg::Contains {
+                item: H256::repeat_byte(1),
+            },
         )
         .unwrap();
         let value: ContainsResponse = from_binary(&res).unwrap();

@@ -5,8 +5,8 @@ use cosmwasm_std::{
     StdResult,
 };
 use cw2::set_contract_version;
-use lib::{addr_to_bytes32, NomadMessage};
 use ethers_core::types::H256;
+use lib::{addr_to_bytes32, NomadMessage};
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -104,6 +104,8 @@ pub fn try_dispatch(
     recipient: String,
     message: Vec<u8>,
 ) -> Result<Response, ContractError> {
+    nomad_base::contract::not_failed(deps.as_ref())?;
+
     let length = message.len() as u128;
     if length > MAX_MESSAGE_BODY_BYTES {
         return Err(ContractError::MsgTooLong { length });
@@ -139,6 +141,8 @@ pub fn try_update(
     new_root: H256,
     signature: Vec<u8>,
 ) -> Result<Response, ContractError> {
+    nomad_base::contract::not_failed(deps.as_ref())?;
+
     if try_improper_update(deps.branch(), committed_root, new_root, &signature).is_ok() {
         return Ok(Response::new()); // kludge?
     }
@@ -158,10 +162,7 @@ pub fn try_update(
     Ok(Response::new().add_event(
         Event::new("Update")
             .add_attribute("local_domain", local_domain.to_string())
-            .add_attribute(
-                "committed_root",
-                committed_root.to_string(),
-            )
+            .add_attribute("committed_root", committed_root.to_string())
             .add_attribute("new_root", new_root.to_string())
             .add_attribute("signature", String::from_utf8_lossy(&signature)),
     ))
@@ -173,6 +174,8 @@ pub fn try_improper_update(
     new_root: H256,
     signature: &[u8],
 ) -> Result<Response, ContractError> {
+    nomad_base::contract::not_failed(deps.as_ref())?;
+
     if !nomad_base::contract::is_updater_signature(deps.as_ref(), old_root, new_root, signature)? {
         return Err(ContractError::NotUpdaterSignature);
     }

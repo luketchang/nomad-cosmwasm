@@ -72,6 +72,8 @@ pub fn try_double_update(
     signature_2: Vec<u8>,
     fail: fn(deps: DepsMut) -> Result<Response, ContractError>,
 ) -> Result<Response, ContractError> {
+    not_failed(deps.as_ref())?;
+
     if is_updater_signature(deps.as_ref(), old_root, new_roots[0], &signature)?
         && is_updater_signature(deps.as_ref(), old_root, new_roots[1], &signature_2)?
         && new_roots[0] != new_roots[1]
@@ -116,6 +118,15 @@ pub fn set_failed(deps: DepsMut) -> Result<Response, ContractError> {
     let mut state = STATE.load(deps.storage)?;
     state.state = States::Failed;
     STATE.save(deps.storage, &state)?;
+
+    Ok(Response::new())
+}
+
+pub fn not_failed(deps: Deps) -> Result<Response, ContractError> {
+    let state = STATE.load(deps.storage)?;
+    if state.state == States::Failed {
+        return Err(ContractError::NotFailedError {});
+    }
 
     Ok(Response::new())
 }

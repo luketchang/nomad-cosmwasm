@@ -1,5 +1,5 @@
 use cosmwasm_std::Addr;
-use ethers_core::types::{H256, SignatureError};
+use ethers_core::types::{SignatureError, H256};
 use std::io::Write;
 
 mod message;

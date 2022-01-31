@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use ethers_core::types::H256;
+use serde::{Deserialize, Serialize};
 
 use super::{merkle_root_from_branch, TREE_DEPTH};
 

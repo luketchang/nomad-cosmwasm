@@ -6,12 +6,15 @@ pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
 
+    #[error("Invalid double update submitted")]
+    InvalidDoubleUpdate {},
+
+    #[error("Function not callable in a failed state")]
+    NotFailedError {},
+
     #[error("{0}")]
     SignatureError(#[from] ethers_core::types::SignatureError),
 
     #[error("{0}")]
     OwnableError(#[from] ownable::ContractError),
-
-    #[error("InvalidDoubleUpdate")]
-    InvalidDoubleUpdate {},
 }

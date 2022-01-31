@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use ethers_core::types::H256;
+use serde::{Deserialize, Serialize};
 
 use crate::merkle_tree::IncrementalMerkle;
 

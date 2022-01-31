@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use ethers_core::types::H256;
+use serde::{Deserialize, Serialize};
 
 use super::{hash_concat, merkle_root_from_branch, Proof, TREE_DEPTH, ZERO_HASHES};
 
