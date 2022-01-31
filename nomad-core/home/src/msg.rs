@@ -38,9 +38,14 @@ impl From<InstantiateMsg> for nomad_base::msg::InstantiateMsg {
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     Dispatch {
-        destination_domain: u32,
-        recipient_address: String,
+        destination: u32,
+        recipient: String,
         message: Vec<u8>,
+    },
+    Update {
+        committed_root: [u8; 32],
+        new_root: [u8; 32],
+        signature: Vec<u8>,
     },
     DoubleUpdate {
         old_root: [u8; 32],
@@ -53,15 +58,15 @@ pub enum ExecuteMsg {
         new_root: [u8; 32],
         signature: Vec<u8>,
     },
-    RenounceOwnership {},
-    TransferOwnership {
-        new_owner: String,
-    },
     SetUpdater {
         updater: String,
     },
     SetUpdaterManager {
         updater_manager: String,
+    },
+    RenounceOwnership {},
+    TransferOwnership {
+        new_owner: String,
     },
 }
 

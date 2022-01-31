@@ -6,6 +6,15 @@ pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
 
+    #[error("Message length {length} too long")]
+    MsgTooLong { length: u128 },
+
+    #[error("Not updater signature")]
+    NotUpdaterSignature,
+
+    #[error("Not improper update")]
+    NotImproperUpdate,
+
     #[error("{0}")]
     OwnableError(#[from] ownable::ContractError),
 

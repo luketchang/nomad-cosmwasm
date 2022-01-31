@@ -13,7 +13,7 @@ use crate::msg::{
     CommittedRootResponse, ExecuteMsg, HomeDomainHashResponse, InstantiateMsg, LocalDomainResponse,
     QueryMsg, StateResponse, UpdaterResponse,
 };
-use crate::state::{State, STATE};
+use crate::state::{State, STATE, States};
 use ownable::contract::{
     instantiate as ownable_instantiate, query_owner, try_renounce_ownership, try_transfer_ownership,
 };
@@ -89,7 +89,7 @@ pub fn try_double_update(
     Err(ContractError::InvalidDoubleUpdate {})
 }
 
-fn is_updater_signature(
+pub fn is_updater_signature(
     deps: Deps,
     old_root: [u8; 32],
     new_root: [u8; 32],
@@ -110,6 +110,33 @@ fn is_updater_signature(
     let sig = Signature::try_from(signature)?;
     let recovered_address = sig.recover(RecoveryMessage::Data(digest.as_bytes().to_vec()))?;
     Ok(H160::from_str(&updater).unwrap() == recovered_address)
+}
+
+pub fn set_failed(deps: DepsMut) -> Result<Response, ContractError> {
+    let mut state = STATE.load(deps.storage)?;
+    state.state = States::Failed;
+    STATE.save(deps.storage, &state)?;
+
+    Ok(Response::new())
+}
+
+pub fn set_updater(deps: DepsMut, info: MessageInfo, updater: String) -> Result<Response, ContractError> {
+    ownable::contract::only_owner(deps.as_ref(), info)?;
+    let updater_addr = deps.api.addr_validate(&updater)?;
+
+    let mut state = STATE.load(deps.storage)?;
+    state.updater = updater_addr;
+    STATE.save(deps.storage, &state)?;
+
+    Ok(Response::new())
+}
+
+pub fn set_committed_root(deps: DepsMut, root: [u8; 32]) -> Result<Response, ContractError> {
+    let mut state = STATE.load(deps.storage)?;
+    state.committed_root = root;
+    STATE.save(deps.storage, &state)?;
+
+    Ok(Response::new())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

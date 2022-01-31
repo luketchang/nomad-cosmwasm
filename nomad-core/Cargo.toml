@@ -8,5 +8,6 @@ members = [
     "ownable",
     "queue",
     "merkle",
+    "lib",
     "test-utils",
 ]

@@ -1,19 +1,23 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{
+    from_binary, to_binary, Addr, Binary, Deps, DepsMut, Env, Event, MessageInfo, Response,
+    StdResult,
+};
 use cw2::set_contract_version;
-use std::collections::HashMap;
+use lib::{addr_to_bytes32, NomadMessage};
 
 use crate::error::ContractError;
 use crate::msg::{
     ExecuteMsg, InstantiateMsg, NoncesResponse, QueryMsg, SuggestUpdateResponse,
     UpdaterManagerResponse,
 };
-use crate::state::{State, NONCES, UPDATER_MANAGER};
+use crate::state::{NONCES, UPDATER_MANAGER};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:home";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+const MAX_MESSAGE_BODY_BYTES: u128 = 2 * 2 ^ 10;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -48,6 +52,162 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
+    match msg {
+        ExecuteMsg::Dispatch {
+            destination,
+            recipient,
+            message,
+        } => try_dispatch(deps, info, destination, recipient, message),
+        ExecuteMsg::Update {
+            committed_root,
+            new_root,
+            signature,
+        } => try_update(deps, committed_root, new_root, signature),
+        ExecuteMsg::DoubleUpdate {
+            old_root,
+            new_roots,
+            signature,
+            signature_2,
+        } => Ok(nomad_base::contract::try_double_update(
+            deps,
+            old_root,
+            new_roots,
+            signature,
+            signature_2,
+            fail,
+        )?),
+        ExecuteMsg::ImproperUpdate {
+            old_root,
+            new_root,
+            signature,
+        } => try_improper_update(deps, old_root, new_root, &signature),
+        ExecuteMsg::SetUpdater { updater } => {
+            Ok(nomad_base::contract::set_updater(deps, info, updater)?)
+        }
+        ExecuteMsg::SetUpdaterManager { updater_manager } => {
+            try_set_updater_manager(deps, info, updater_manager)
+        }
+        ExecuteMsg::RenounceOwnership {} => {
+            Ok(ownable::contract::try_renounce_ownership(deps, info)?)
+        }
+        ExecuteMsg::TransferOwnership { new_owner } => Ok(
+            ownable::contract::try_transfer_ownership(deps, info, new_owner)?,
+        ),
+    }
+}
+
+pub fn try_dispatch(
+    mut deps: DepsMut,
+    info: MessageInfo,
+    destination: u32,
+    recipient: String,
+    message: Vec<u8>,
+) -> Result<Response, ContractError> {
+    let length = message.len() as u128;
+    if length > MAX_MESSAGE_BODY_BYTES {
+        return Err(ContractError::MsgTooLong { length });
+    }
+
+    let nonce = query_nonces(deps.as_ref(), destination)?.next_nonce;
+    NONCES.save(deps.storage, destination, &(nonce + 1))?;
+
+    let origin = nomad_base::contract::query_local_domain(deps.as_ref())?.local_domain;
+    let recipient_addr = deps.api.addr_validate(&recipient)?;
+
+    let message = NomadMessage {
+        origin,
+        sender: addr_to_bytes32(info.sender),
+        nonce,
+        destination,
+        recipient: addr_to_bytes32(recipient_addr),
+        body: message,
+    };
+
+    let hash: [u8; 32] = message.to_leaf().into();
+    merkle::contract::try_insert(deps.branch(), hash)?;
+
+    let root = merkle::contract::query_root(deps.as_ref())?.root;
+    queue::contract::try_enqueue(deps, root)?;
+
+    Ok(Response::new())
+}
+
+pub fn try_update(
+    mut deps: DepsMut,
+    committed_root: [u8; 32],
+    new_root: [u8; 32],
+    signature: Vec<u8>,
+) -> Result<Response, ContractError> {
+    if try_improper_update(deps.branch(), committed_root, new_root, &signature).is_ok() {
+        return Ok(Response::new()); // kludge?
+    }
+
+    loop {
+        let next_res = queue::contract::try_dequeue(deps.branch())?;
+        let next: [u8; 32] = from_binary(&next_res.data.unwrap())?;
+        if next == new_root {
+            break;
+        }
+    }
+
+    nomad_base::contract::set_committed_root(deps.branch(), new_root)?;
+
+    let local_domain = nomad_base::contract::query_local_domain(deps.as_ref())?.local_domain;
+
+    Ok(Response::new().add_event(
+        Event::new("Update")
+            .add_attribute("local_domain", local_domain.to_string())
+            .add_attribute(
+                "committed_root",
+                std::str::from_utf8(&committed_root).unwrap(),
+            )
+            .add_attribute("new_root", std::str::from_utf8(&new_root).unwrap())
+            .add_attribute("signature", String::from_utf8_lossy(&signature)),
+    ))
+}
+
+pub fn try_improper_update(
+    deps: DepsMut,
+    old_root: [u8; 32],
+    new_root: [u8; 32],
+    signature: &[u8],
+) -> Result<Response, ContractError> {
+    if !nomad_base::contract::is_updater_signature(deps.as_ref(), old_root, new_root, signature)? {
+        return Err(ContractError::NotUpdaterSignature);
+    }
+
+    if !queue::contract::query_contains(deps.as_ref(), new_root)?.contains {
+        fail(deps)?;
+        return Ok(Response::new().add_event(
+            Event::new("ImproperUpdate")
+                .add_attribute("old_root", std::str::from_utf8(&old_root).unwrap())
+                .add_attribute("new_root", std::str::from_utf8(&new_root).unwrap())
+                .add_attribute("signature", String::from_utf8_lossy(signature)),
+        ));
+    }
+
+    Err(ContractError::NotImproperUpdate)
+}
+
+pub fn try_set_updater_manager(
+    deps: DepsMut,
+    info: MessageInfo,
+    updater_manager: String,
+) -> Result<Response, ContractError> {
+    ownable::contract::only_owner(deps.as_ref(), info)?;
+    let updater_manager_addr = deps.api.addr_validate(&updater_manager)?;
+
+    UPDATER_MANAGER.save(deps.storage, &updater_manager_addr)?;
+
+    Ok(Response::new().add_event(
+        Event::new("SetUpdaterManager").add_attribute("updater_manager", updater_manager),
+    ))
+}
+
+fn fail(deps: DepsMut) -> Result<Response, nomad_base::ContractError> {
+    nomad_base::contract::set_failed(deps)?;
+
+    // TODO: queue submessage to slash updater manager updater
     Ok(Response::new())
 }
 

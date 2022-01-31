@@ -46,6 +46,7 @@ nomad-base = { path = "../nomad-base", features = ["library"] }
 merkle = { path = "../merkle", features = ["library"] }
 queue = { path = "../queue", features = ["library"] }
 test-utils = { path = "../test-utils" }
+lib = { path = "../lib" }
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta" }

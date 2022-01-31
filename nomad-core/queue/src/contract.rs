@@ -58,9 +58,7 @@ pub fn try_dequeue(deps: DepsMut) -> Result<Response, ContractError> {
     let mut queue = QUEUE.load(deps.storage)?;
     let item = queue.pop_front().ok_or(ContractError::QueueEmpty {})?;
     QUEUE.save(deps.storage, &queue)?;
-    Ok(Response::new()
-        .add_attribute("action", "dequeue")
-        .add_attribute("item", std::str::from_utf8(&item).unwrap()))
+    Ok(Response::new().set_data(to_binary(&item)?))
 }
 
 pub fn try_enqueue_batch(deps: DepsMut, items: Vec<[u8; 32]>) -> Result<Response, ContractError> {
@@ -188,12 +186,8 @@ mod tests {
 
         // Dequeue single
         let res = try_dequeue(deps.as_mut()).unwrap();
-        let item_attr = res
-            .attributes
-            .iter()
-            .find(|&item| item.key == "item")
-            .unwrap();
-        assert_eq!(std::str::from_utf8(&single_item).unwrap(), item_attr.value);
+        let item: [u8; 32] = from_binary(&res.data.unwrap()).unwrap();
+        assert_eq!(single_item, item);
 
         // Enqueue batch 3
         let items = vec![[0u8; 32], [1u8; 32], [2u8; 32]];
