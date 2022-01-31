@@ -2,9 +2,7 @@ use std::collections::VecDeque;
 
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    to_binary, Attribute, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
-};
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw2::set_contract_version;
 use ethers_core::types::H256;
 
@@ -74,13 +72,7 @@ pub fn try_dequeue_batch(deps: DepsMut, number: u128) -> Result<Response, Contra
     let drained: Vec<H256> = queue.drain(0..(number as usize)).collect();
     QUEUE.save(deps.storage, &queue)?;
 
-    let attributes: Vec<Attribute> = drained
-        .iter()
-        .enumerate()
-        .map(|(i, item)| Attribute::new(format!("item_{}", i + 1), item.to_string()))
-        .collect();
-
-    Ok(Response::new().add_attributes(attributes))
+    Ok(Response::new().set_data(to_binary(&drained)?))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -223,18 +215,9 @@ mod tests {
 
         // Dequeue batch 2
         let res = try_dequeue_batch(deps.as_mut(), 2).unwrap();
-        let item_1_attr = res
-            .attributes
-            .iter()
-            .find(|&item| item.key == "item_1")
-            .unwrap();
-        let item_2_attr = res
-            .attributes
-            .iter()
-            .find(|&item| item.key == "item_2")
-            .unwrap();
-        assert_eq!(H256::zero().to_string(), item_1_attr.value);
-        assert_eq!(H256::repeat_byte(1).to_string(), item_2_attr.value);
+        let dequeued: Vec<H256> = from_binary(&res.data.unwrap()).unwrap();
+        assert_eq!(H256::zero().to_string(), dequeued[0].to_string());
+        assert_eq!(H256::repeat_byte(1).to_string(), dequeued[1].to_string());
 
         // Length
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Length {}).unwrap();
