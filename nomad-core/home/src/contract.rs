@@ -202,7 +202,11 @@ pub fn try_improper_update(
     Err(ContractError::NotImproperUpdate)
 }
 
-pub fn try_set_updater(deps: DepsMut, info: MessageInfo, updater: String) -> Result<Response, ContractError> {
+pub fn try_set_updater(
+    deps: DepsMut,
+    info: MessageInfo,
+    updater: String,
+) -> Result<Response, ContractError> {
     only_updater_manager(deps.as_ref(), info.clone())?;
     Ok(nomad_base::contract::_set_updater(deps, updater)?)
 }

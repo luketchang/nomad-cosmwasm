@@ -4,6 +4,7 @@ cargo-features = ["edition2021"]
 
 members = [
     "home",
+    "updater-manager",
     "nomad-base",
     "ownable",
     "queue",

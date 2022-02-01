@@ -131,10 +131,7 @@ pub fn _set_failed(deps: DepsMut) -> Result<Response, ContractError> {
     Ok(Response::new())
 }
 
-pub fn _set_updater(
-    deps: DepsMut,
-    updater: String,
-) -> Result<Response, ContractError> {
+pub fn _set_updater(deps: DepsMut, updater: String) -> Result<Response, ContractError> {
     let updater_addr = deps.api.addr_validate(&updater)?;
 
     let mut state = STATE.load(deps.storage)?;
