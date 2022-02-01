@@ -15,6 +15,9 @@ pub enum ContractError {
     #[error("Not improper update")]
     NotImproperUpdate,
 
+    #[error("Not updater manager")]
+    NotUpdaterManager { address: String },
+
     #[error("{0}")]
     OwnableError(#[from] ownable::ContractError),
 

@@ -46,6 +46,17 @@ pub fn instantiate(
     Ok(Response::new())
 }
 
+fn only_updater_manager(deps: Deps, info: MessageInfo) -> Result<Response, ContractError> {
+    let updater_manager = UPDATER_MANAGER.load(deps.storage)?;
+    if info.sender != updater_manager {
+        return Err(ContractError::NotUpdaterManager {
+            address: updater_manager.to_string(),
+        });
+    }
+
+    Ok(Response::new())
+}
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
@@ -75,16 +86,14 @@ pub fn execute(
             new_roots,
             signature,
             signature_2,
-            fail,
+            _fail,
         )?),
         ExecuteMsg::ImproperUpdate {
             old_root,
             new_root,
             signature,
         } => try_improper_update(deps, old_root, new_root, &signature),
-        ExecuteMsg::SetUpdater { updater } => {
-            Ok(nomad_base::contract::set_updater(deps, info, updater)?)
-        }
+        ExecuteMsg::SetUpdater { updater } => try_set_updater(deps, info, updater),
         ExecuteMsg::SetUpdaterManager { updater_manager } => {
             try_set_updater_manager(deps, info, updater_manager)
         }
@@ -155,7 +164,7 @@ pub fn try_update(
         }
     }
 
-    nomad_base::contract::set_committed_root(deps.branch(), new_root)?;
+    nomad_base::contract::_set_committed_root(deps.branch(), new_root)?;
 
     let local_domain = nomad_base::contract::query_local_domain(deps.as_ref())?.local_domain;
 
@@ -181,7 +190,7 @@ pub fn try_improper_update(
     }
 
     if !queue::contract::query_contains(deps.as_ref(), new_root)?.contains {
-        fail(deps)?;
+        _fail(deps)?;
         return Ok(Response::new().add_event(
             Event::new("ImproperUpdate")
                 .add_attribute("old_root", old_root.to_string())
@@ -191,6 +200,11 @@ pub fn try_improper_update(
     }
 
     Err(ContractError::NotImproperUpdate)
+}
+
+pub fn try_set_updater(deps: DepsMut, info: MessageInfo, updater: String) -> Result<Response, ContractError> {
+    only_updater_manager(deps.as_ref(), info.clone())?;
+    Ok(nomad_base::contract::_set_updater(deps, updater)?)
 }
 
 pub fn try_set_updater_manager(
@@ -208,8 +222,8 @@ pub fn try_set_updater_manager(
     ))
 }
 
-fn fail(deps: DepsMut) -> Result<Response, nomad_base::ContractError> {
-    nomad_base::contract::set_failed(deps)?;
+fn _fail(deps: DepsMut) -> Result<Response, nomad_base::ContractError> {
+    nomad_base::contract::_set_failed(deps)?;
 
     // TODO: queue submessage to slash updater manager updater
     Ok(Response::new())

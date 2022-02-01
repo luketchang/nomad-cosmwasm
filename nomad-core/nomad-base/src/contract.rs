@@ -49,6 +49,15 @@ pub fn instantiate(
         .add_attribute("updater", msg.updater))
 }
 
+pub fn not_failed(deps: Deps) -> Result<Response, ContractError> {
+    let state = STATE.load(deps.storage)?;
+    if state.state == States::Failed {
+        return Err(ContractError::NotFailedError {});
+    }
+
+    Ok(Response::new())
+}
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
@@ -114,7 +123,7 @@ pub fn is_updater_signature(
     Ok(H160::from_str(&updater).unwrap() == recovered_address)
 }
 
-pub fn set_failed(deps: DepsMut) -> Result<Response, ContractError> {
+pub fn _set_failed(deps: DepsMut) -> Result<Response, ContractError> {
     let mut state = STATE.load(deps.storage)?;
     state.state = States::Failed;
     STATE.save(deps.storage, &state)?;
@@ -122,21 +131,10 @@ pub fn set_failed(deps: DepsMut) -> Result<Response, ContractError> {
     Ok(Response::new())
 }
 
-pub fn not_failed(deps: Deps) -> Result<Response, ContractError> {
-    let state = STATE.load(deps.storage)?;
-    if state.state == States::Failed {
-        return Err(ContractError::NotFailedError {});
-    }
-
-    Ok(Response::new())
-}
-
-pub fn set_updater(
+pub fn _set_updater(
     deps: DepsMut,
-    info: MessageInfo,
     updater: String,
 ) -> Result<Response, ContractError> {
-    ownable::contract::only_owner(deps.as_ref(), info)?;
     let updater_addr = deps.api.addr_validate(&updater)?;
 
     let mut state = STATE.load(deps.storage)?;
@@ -146,7 +144,7 @@ pub fn set_updater(
     Ok(Response::new())
 }
 
-pub fn set_committed_root(deps: DepsMut, root: H256) -> Result<Response, ContractError> {
+pub fn _set_committed_root(deps: DepsMut, root: H256) -> Result<Response, ContractError> {
     let mut state = STATE.load(deps.storage)?;
     state.committed_root = root;
     STATE.save(deps.storage, &state)?;
