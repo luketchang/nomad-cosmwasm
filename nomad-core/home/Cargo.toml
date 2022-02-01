@@ -42,6 +42,7 @@ ethers-core = "0.6.2"
 tokio = { version = "1.0.1", features = ["rt", "macros"] }
 
 ownable = { path = "../ownable", features = ["library"] }
+updater-manager = { path = "../updater-manager" }
 nomad-base = { path = "../nomad-base", features = ["library"] }
 merkle = { path = "../merkle", features = ["library"] }
 queue = { path = "../queue", features = ["library"] }

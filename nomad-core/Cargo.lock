@@ -874,6 +874,7 @@ dependencies = [
  "test-utils",
  "thiserror",
  "tokio",
+ "updater-manager",
 ]
 
 [[package]]

@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    from_binary, to_binary, Addr, Binary, Deps, DepsMut, Env, Event, MessageInfo, Response,
-    StdResult,
+    from_binary, to_binary, Addr, Binary, ContractResult, CosmosMsg, Deps, DepsMut, Env, Event,
+    MessageInfo, Reply, ReplyOn, Response, StdResult, SubMsg, WasmMsg,
 };
 use cw2::set_contract_version;
 use ethers_core::types::H256;
@@ -15,9 +15,10 @@ use crate::msg::{
 };
 use crate::state::{NONCES, UPDATER_MANAGER};
 
-// version info for migration info
 const CONTRACT_NAME: &str = "crates.io:home";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+pub const SLASH_UPDATER_ID: u64 = 1;
 const MAX_MESSAGE_BODY_BYTES: u128 = 2 * 2 ^ 10;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -74,7 +75,7 @@ pub fn execute(
             committed_root,
             new_root,
             signature,
-        } => try_update(deps, committed_root, new_root, signature),
+        } => try_update(deps, info, committed_root, new_root, signature),
         ExecuteMsg::DoubleUpdate {
             old_root,
             new_roots,
@@ -82,6 +83,7 @@ pub fn execute(
             signature_2,
         } => Ok(nomad_base::contract::try_double_update(
             deps,
+            info,
             old_root,
             new_roots,
             signature,
@@ -92,7 +94,7 @@ pub fn execute(
             old_root,
             new_root,
             signature,
-        } => try_improper_update(deps, old_root, new_root, &signature),
+        } => try_improper_update(deps, info, old_root, new_root, &signature),
         ExecuteMsg::SetUpdater { updater } => try_set_updater(deps, info, updater),
         ExecuteMsg::SetUpdaterManager { updater_manager } => {
             try_set_updater_manager(deps, info, updater_manager)
@@ -146,13 +148,14 @@ pub fn try_dispatch(
 
 pub fn try_update(
     mut deps: DepsMut,
+    info: MessageInfo,
     committed_root: H256,
     new_root: H256,
     signature: Vec<u8>,
 ) -> Result<Response, ContractError> {
     nomad_base::contract::not_failed(deps.as_ref())?;
 
-    if try_improper_update(deps.branch(), committed_root, new_root, &signature).is_ok() {
+    if try_improper_update(deps.branch(), info, committed_root, new_root, &signature).is_ok() {
         return Ok(Response::new()); // kludge?
     }
 
@@ -179,6 +182,7 @@ pub fn try_update(
 
 pub fn try_improper_update(
     deps: DepsMut,
+    info: MessageInfo,
     old_root: H256,
     new_root: H256,
     signature: &[u8],
@@ -190,7 +194,7 @@ pub fn try_improper_update(
     }
 
     if !queue::contract::query_contains(deps.as_ref(), new_root)?.contains {
-        _fail(deps)?;
+        _fail(deps, info)?;
         return Ok(Response::new().add_event(
             Event::new("ImproperUpdate")
                 .add_attribute("old_root", old_root.to_string())
@@ -226,11 +230,42 @@ pub fn try_set_updater_manager(
     ))
 }
 
-fn _fail(deps: DepsMut) -> Result<Response, nomad_base::ContractError> {
-    nomad_base::contract::_set_failed(deps)?;
+fn _fail(mut deps: DepsMut, info: MessageInfo) -> Result<Response, nomad_base::ContractError> {
+    nomad_base::contract::_set_failed(deps.branch())?;
 
-    // TODO: queue submessage to slash updater manager updater
-    Ok(Response::new())
+    let slash_updater_msg = updater_manager::msg::ExecuteMsg::SlashUpdater {
+        reporter: info.sender.to_string(),
+    };
+    let wasm_msg = WasmMsg::Execute {
+        contract_addr: query_updater_manager(deps.as_ref())?.updater_manager,
+        msg: to_binary(&slash_updater_msg)?,
+        funds: vec![],
+    };
+    let cosmos_msg = CosmosMsg::Wasm(wasm_msg);
+
+    let sub_msg = SubMsg {
+        id: SLASH_UPDATER_ID,
+        msg: cosmos_msg,
+        gas_limit: None,
+        reply_on: ReplyOn::Always,
+    };
+
+    Ok(Response::new().add_submessage(sub_msg))
+}
+
+#[entry_point]
+pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
+    match msg.id {
+        SLASH_UPDATER_ID => reply_slash_updater(deps.as_ref(), env, msg),
+        _ => Err(ContractError::UnknownReplyMessage { id: msg.id }),
+    }
+}
+
+pub fn reply_slash_updater(_deps: Deps, _env: Env, msg: Reply) -> Result<Response, ContractError> {
+    match msg.result {
+        ContractResult::Ok(res) => Ok(Response::new().add_events(res.events)),
+        ContractResult::Err(e) => Err(ContractError::FailedSlashUpdaterReply(e)),
+    }
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

@@ -124,7 +124,9 @@ mod tests {
     fn proper_initialization() {
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
-        let msg = InstantiateMsg { updater: "updater".to_owned() };
+        let msg = InstantiateMsg {
+            updater: "updater".to_owned(),
+        };
         let info = mock_info("creator", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
@@ -142,7 +144,9 @@ mod tests {
 
         // Set home and check with query
         let updater_info = mock_info("creator", &coins(100, "earth"));
-        let msg = ExecuteMsg::SetHome { home: "home".to_owned() };
+        let msg = ExecuteMsg::SetHome {
+            home: "home".to_owned(),
+        };
         let _res = execute(deps.as_mut(), mock_env(), updater_info, msg).unwrap();
     }
 }

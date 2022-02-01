@@ -15,8 +15,14 @@ pub enum ContractError {
     #[error("Not improper update")]
     NotImproperUpdate,
 
-    #[error("Not updater manager")]
+    #[error("Not updater manager: {address}")]
     NotUpdaterManager { address: String },
+
+    #[error("Unknown reply message id received: {id}")]
+    UnknownReplyMessage { id: u64 },
+
+    #[error("Failed reply to slash updater: {0}")]
+    FailedSlashUpdaterReply(String),
 
     #[error("{0}")]
     OwnableError(#[from] ownable::ContractError),

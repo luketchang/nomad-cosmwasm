@@ -75,11 +75,12 @@ pub fn execute(
 
 pub fn try_double_update(
     deps: DepsMut,
+    info: MessageInfo,
     old_root: H256,
     new_roots: [H256; 2],
     signature: Vec<u8>,
     signature_2: Vec<u8>,
-    fail: fn(deps: DepsMut) -> Result<Response, ContractError>,
+    fail: fn(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError>,
 ) -> Result<Response, ContractError> {
     not_failed(deps.as_ref())?;
 
@@ -87,7 +88,7 @@ pub fn try_double_update(
         && is_updater_signature(deps.as_ref(), old_root, new_roots[1], &signature_2)?
         && new_roots[0] != new_roots[1]
     {
-        fail(deps)?;
+        fail(deps, info)?;
         return Ok(Response::new().add_event(
             Event::new("DoubleUpdate")
                 .add_attribute("old_root", new_roots[0].to_string())
@@ -219,7 +220,7 @@ mod tests {
         "1111111111111111111111111111111111111111111111111111111111111111";
     const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
 
-    fn mock_fail_fn(_deps: DepsMut) -> Result<Response, ContractError> {
+    fn mock_fail_fn(_deps: DepsMut, _info: MessageInfo) -> Result<Response, ContractError> {
         Ok(Response::new())
     }
 
@@ -329,7 +330,7 @@ mod tests {
         };
         let info = mock_info("creator", &coins(100, "earth"));
 
-        let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
         let old_root = H256::zero();
@@ -340,6 +341,7 @@ mod tests {
 
         let double_update_res = try_double_update(
             deps.as_mut(),
+            info.clone(),
             old_root,
             [new_root, bad_new_root],
             update.signature.to_vec(),
@@ -362,7 +364,7 @@ mod tests {
         };
         let info = mock_info("creator", &coins(100, "earth"));
 
-        let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
         assert_eq!(0, res.messages.len());
 
         let old_root = H256::zero();
@@ -371,6 +373,7 @@ mod tests {
 
         let double_update_res = try_double_update(
             deps.as_mut(),
+            info.clone(),
             old_root,
             [new_root, new_root],
             update.signature.to_vec(),
