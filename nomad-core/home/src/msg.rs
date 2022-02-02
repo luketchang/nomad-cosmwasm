@@ -40,7 +40,7 @@ pub enum ExecuteMsg {
     Dispatch {
         destination: u32,
         recipient: String,
-        message: Vec<u8>,
+        message_body: Vec<u8>,
     },
     Update {
         committed_root: H256,

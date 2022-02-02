@@ -127,7 +127,7 @@ mod tests {
         let msg = InstantiateMsg {
             updater: "updater".to_owned(),
         };
-        let info = mock_info("creator", &coins(100, "earth"));
+        let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
@@ -140,13 +140,13 @@ mod tests {
         // Owner
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();
         let value: ownable::msg::OwnerResponse = from_binary(&res).unwrap();
-        assert_eq!("creator", value.owner);
+        assert_eq!("owner", value.owner);
 
-        // Set home and check with query
-        let updater_info = mock_info("creator", &coins(100, "earth"));
+        // Set home
+        let info = mock_info("owner", &coins(100, "earth"));
         let msg = ExecuteMsg::SetHome {
             home: "home".to_owned(),
         };
-        let _res = execute(deps.as_mut(), mock_env(), updater_info, msg).unwrap();
+        let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
     }
 }

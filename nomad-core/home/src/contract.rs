@@ -6,7 +6,7 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use ethers_core::types::H256;
-use lib::{addr_to_bytes32, NomadMessage};
+use lib::{addr_to_bytes32, destination_and_nonce, h256_to_string, Encode, NomadMessage};
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -19,7 +19,7 @@ const CONTRACT_NAME: &str = "crates.io:home";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const SLASH_UPDATER_ID: u64 = 1;
-const MAX_MESSAGE_BODY_BYTES: u128 = 2 * 2 ^ 10;
+const MAX_MESSAGE_BODY_BYTES: u128 = 2 * u128::pow(2, 10);
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -38,11 +38,8 @@ pub fn instantiate(
         msg.clone().into(),
     )?;
 
-    println!("Initialized child contracts!");
-
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     UPDATER_MANAGER.save(deps.storage, &Addr::unchecked("0x0"))?;
-    println!("Initialized own state");
 
     Ok(Response::new())
 }
@@ -69,8 +66,8 @@ pub fn execute(
         ExecuteMsg::Dispatch {
             destination,
             recipient,
-            message,
-        } => try_dispatch(deps, info, destination, recipient, message),
+            message_body,
+        } => try_dispatch(deps, info, destination, recipient, message_body),
         ExecuteMsg::Update {
             committed_root,
             new_root,
@@ -128,22 +125,38 @@ pub fn try_dispatch(
     let origin = nomad_base::contract::query_local_domain(deps.as_ref())?.local_domain;
     let recipient_addr = deps.api.addr_validate(&recipient)?;
 
-    let message = NomadMessage {
+    let nomad_message = NomadMessage {
         origin,
         sender: addr_to_bytes32(info.sender),
         nonce,
         destination,
         recipient: addr_to_bytes32(recipient_addr),
-        body: message,
+        body: message.clone(),
     };
 
-    let hash: H256 = message.to_leaf().into();
+    // Get state before mutations
+    let leaf_index = merkle::contract::query_count(deps.as_ref())?.count;
+    let committed_root = nomad_base::contract::query_committed_root(deps.as_ref())?.committed_root;
+
+    // Insert leaf into tree
+    let hash: H256 = nomad_message.to_leaf();
     merkle::contract::try_insert(deps.branch(), hash)?;
 
+    // Enqueue merkle root
     let root = merkle::contract::query_root(deps.as_ref())?.root;
-    queue::contract::try_enqueue(deps, root)?;
+    queue::contract::try_enqueue(deps.branch(), root)?;
 
-    Ok(Response::new())
+    Ok(Response::new().add_event(
+        Event::new("Dispatch")
+            .add_attribute("message_hash", hash.to_string())
+            .add_attribute("leaf_index", leaf_index.to_string())
+            .add_attribute(
+                "destination_and_nonce",
+                destination_and_nonce(destination, nonce).to_string(),
+            )
+            .add_attribute("committed_root", format!("{:?}", committed_root))
+            .add_attribute("message", format!("{:?}", nomad_message.to_vec())),
+    ))
 }
 
 pub fn try_update(
@@ -317,6 +330,8 @@ pub fn query_updater_manager(deps: Deps) -> StdResult<UpdaterManagerResponse> {
 
 #[cfg(test)]
 mod tests {
+    use std::convert::TryInto;
+
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
@@ -324,6 +339,7 @@ mod tests {
     use merkle::msg::RootResponse;
     use nomad_base::msg::{LocalDomainResponse, StateResponse, UpdaterResponse};
     use queue::msg::{LastItemResponse, LengthResponse};
+    use test_utils::event_attr_value_by_key;
 
     const LOCAL_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =
@@ -338,7 +354,7 @@ mod tests {
             local_domain: LOCAL_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
         };
-        let info = mock_info("creator", &coins(100, "earth"));
+        let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
@@ -392,5 +408,95 @@ mod tests {
         let res = query(deps.as_ref(), mock_env(), QueryMsg::QueueEnd {}).unwrap();
         let value: LastItemResponse = from_binary(&res).unwrap();
         assert_eq!(H256::zero(), value.item);
+    }
+
+    #[test]
+    fn does_not_dispatch_messages_too_large() {
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
+
+        let msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Dispatch 3000 byte message
+        let info = mock_info("dispatcher", &coins(100, "earth"));
+        let msg = ExecuteMsg::Dispatch {
+            destination: 2000,
+            recipient: "recipient".to_owned(),
+            message_body: [0u8].repeat(3000),
+        };
+        let res = execute(deps.as_mut(), mock_env(), info, msg);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn dispatches_message() {
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
+
+        let msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Get root before state changes
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Root {}).unwrap();
+        let initial_root = from_binary::<RootResponse>(&res).unwrap().root;
+
+        // Create message
+        let sender = H256::repeat_byte(0);
+        let destination = 2000;
+        let recipient = H256::repeat_byte(1);
+        let message_body = [0u8].repeat(100);
+        let nonce = query_nonces(deps.as_ref(), destination).unwrap().next_nonce;
+
+        let nomad_message = NomadMessage {
+            origin: LOCAL_DOMAIN,
+            sender,
+            nonce,
+            destination,
+            recipient,
+            body: message_body.clone(),
+        };
+
+        // Dispatch message
+        let info = mock_info(&h256_to_string(sender), &coins(100, "earth"));
+        let msg = ExecuteMsg::Dispatch {
+            destination,
+            recipient: h256_to_string(recipient),
+            message_body,
+        };
+        let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        let dispatch_event = &res.events[0];
+        assert_eq!("Dispatch", dispatch_event.ty);
+        assert_eq!(
+            nomad_message.to_leaf().to_string(),
+            event_attr_value_by_key(&dispatch_event, "message_hash").unwrap()
+        );
+        assert_eq!(
+            "0",
+            event_attr_value_by_key(&dispatch_event, "leaf_index").unwrap()
+        );
+        assert_eq!(
+            destination_and_nonce(destination, nonce).to_string(),
+            event_attr_value_by_key(&dispatch_event, "destination_and_nonce").unwrap()
+        );
+        assert_eq!(
+            format!("{:?}", H256::zero()),
+            event_attr_value_by_key(&dispatch_event, "committed_root").unwrap()
+        );
+        assert_eq!(
+            format!("{:?}", nomad_message.to_vec()),
+            event_attr_value_by_key(&dispatch_event, "message").unwrap()
+        );
     }
 }

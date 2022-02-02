@@ -232,7 +232,7 @@ mod tests {
             local_domain: LOCAL_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
         };
-        let info = mock_info("creator", &coins(100, "earth"));
+        let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
         assert_eq!(0, res.messages.len());
@@ -240,7 +240,7 @@ mod tests {
         // Owner
         let owner_res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();
         let value: OwnerResponse = from_binary(&owner_res).unwrap();
-        assert_eq!("creator", value.owner);
+        assert_eq!("owner", value.owner);
 
         // State
         let res = query(deps.as_ref(), mock_env(), QueryMsg::State {}).unwrap();
@@ -268,7 +268,7 @@ mod tests {
             local_domain: LOCAL_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
         };
-        let info = mock_info("creator", &coins(100, "earth"));
+        let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
         assert_eq!(0, res.messages.len());
@@ -299,7 +299,7 @@ mod tests {
             local_domain: LOCAL_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
         };
-        let info = mock_info("creator", &coins(100, "earth"));
+        let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
         assert_eq!(0, res.messages.len());
@@ -328,7 +328,7 @@ mod tests {
             local_domain: LOCAL_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
         };
-        let info = mock_info("creator", &coins(100, "earth"));
+        let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
         assert_eq!(0, res.messages.len());
@@ -362,7 +362,7 @@ mod tests {
             local_domain: LOCAL_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
         };
-        let info = mock_info("creator", &coins(100, "earth"));
+        let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
         assert_eq!(0, res.messages.len());

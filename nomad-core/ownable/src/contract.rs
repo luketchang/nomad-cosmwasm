@@ -109,14 +109,14 @@ mod tests {
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
         let msg = InstantiateMsg {};
-        let info = mock_info("creator", &coins(100, "earth"));
+        let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
 
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();
         let value: OwnerResponse = from_binary(&res).unwrap();
-        assert_eq!("creator", value.owner);
+        assert_eq!("owner", value.owner);
     }
 
     #[test]
@@ -124,7 +124,7 @@ mod tests {
         let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
 
         let msg = InstantiateMsg {};
-        let info = mock_info("creator", &coins(100, "token"));
+        let info = mock_info("owner", &coins(100, "token"));
         let _res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
         let msg = ExecuteMsg::RenounceOwnership {};
@@ -140,7 +140,7 @@ mod tests {
         let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
 
         let msg = InstantiateMsg {};
-        let info = mock_info("creator", &coins(100, "token"));
+        let info = mock_info("owner", &coins(100, "token"));
         let _res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
         let msg = ExecuteMsg::TransferOwnership {
@@ -158,7 +158,7 @@ mod tests {
         let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
 
         let msg = InstantiateMsg {};
-        let info = mock_info("creator", &coins(100, "token"));
+        let info = mock_info("owner", &coins(100, "token"));
         let _res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
         let no_auth_info = mock_info("not_auth", &coins(100, "token"));
@@ -180,6 +180,6 @@ mod tests {
 
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();
         let value: OwnerResponse = from_binary(&res).unwrap();
-        assert_eq!("creator", value.owner);
+        assert_eq!("owner", value.owner);
     }
 }
