@@ -8,8 +8,8 @@ use ethers_core::types::H256;
 
 use crate::error::ContractError;
 use crate::msg::{
-    ContainsResponse, ExecuteMsg, InstantiateMsg, IsEmptyResponse, LastItemResponse,
-    LengthResponse, PeekResponse, QueryMsg,
+    ContainsResponse, ExecuteMsg, InstantiateMsg, IsEmptyResponse, EndResponse,
+    LengthResponse, FrontResponse, QueryMsg,
 };
 use crate::state::QUEUE;
 
@@ -79,8 +79,8 @@ pub fn try_dequeue_batch(deps: DepsMut, number: u128) -> Result<Response, Contra
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Contains { item } => to_binary(&query_contains(deps, item)?),
-        QueryMsg::LastItem {} => to_binary(&query_last_item(deps)?),
-        QueryMsg::Peek {} => to_binary(&query_peek(deps)?),
+        QueryMsg::End {} => to_binary(&query_last_item(deps)?),
+        QueryMsg::Front {} => to_binary(&query_peek(deps)?),
         QueryMsg::IsEmpty {} => to_binary(&query_is_empty(deps)?),
         QueryMsg::Length {} => to_binary(&query_length(deps)?),
     }
@@ -93,16 +93,16 @@ pub fn query_contains(deps: Deps, item: H256) -> StdResult<ContainsResponse> {
     })
 }
 
-pub fn query_last_item(deps: Deps) -> StdResult<LastItemResponse> {
+pub fn query_last_item(deps: Deps) -> StdResult<EndResponse> {
     let queue = QUEUE.load(deps.storage)?;
-    Ok(LastItemResponse {
+    Ok(EndResponse {
         item: queue.back().map_or(H256::zero(), |item| item.clone()),
     })
 }
 
-pub fn query_peek(deps: Deps) -> StdResult<PeekResponse> {
+pub fn query_peek(deps: Deps) -> StdResult<FrontResponse> {
     let queue = QUEUE.load(deps.storage)?;
-    Ok(PeekResponse {
+    Ok(FrontResponse {
         item: queue.front().expect("queue empty").to_owned(),
     })
 }
@@ -143,8 +143,8 @@ mod tests {
         assert_eq!(0, value.length);
 
         // Last item defaults to 0x0
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::LastItem {}).unwrap();
-        let value: LastItemResponse = from_binary(&res).unwrap();
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::End {}).unwrap();
+        let value: EndResponse = from_binary(&res).unwrap();
         assert_eq!(H256::zero(), value.item);
     }
 
@@ -191,14 +191,14 @@ mod tests {
         let value: IsEmptyResponse = from_binary(&res).unwrap();
         assert_eq!(false, value.is_empty);
 
-        // Peek
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::Peek {}).unwrap();
-        let value: PeekResponse = from_binary(&res).unwrap();
+        // Front
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::Front {}).unwrap();
+        let value: FrontResponse = from_binary(&res).unwrap();
         assert_eq!(H256::zero(), value.item);
 
         // Last item
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::LastItem {}).unwrap();
-        let value: LastItemResponse = from_binary(&res).unwrap();
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::End {}).unwrap();
+        let value: EndResponse = from_binary(&res).unwrap();
         assert_eq!(H256::repeat_byte(2), value.item);
 
         // Contains

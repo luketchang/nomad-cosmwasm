@@ -17,8 +17,8 @@ pub enum ExecuteMsg {
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     Contains { item: H256 },
-    LastItem {},
-    Peek {},
+    End {},
+    Front {},
     IsEmpty {},
     Length {},
 }
@@ -29,12 +29,12 @@ pub struct ContainsResponse {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct LastItemResponse {
+pub struct EndResponse {
     pub item: H256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct PeekResponse {
+pub struct FrontResponse {
     pub item: H256,
 }
 

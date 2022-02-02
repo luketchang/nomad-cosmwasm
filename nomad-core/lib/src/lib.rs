@@ -28,12 +28,6 @@ pub fn destination_and_nonce(destination: u32, nonce: u32) -> u64 {
     ((destination as u64) << 32) | nonce as u64
 }
 
-/// Convert ethers H256 to string (to_string implementation interprets diff)
-pub fn h256_to_string(h256: H256) -> String {
-    let bytes = h256.to_fixed_bytes();
-    String::from_utf8(bytes.to_vec()).unwrap()
-}
-
 /// Convert cosmwasm_std::Addr into H256 (fixed 32 byte array)
 pub fn addr_to_bytes32(address: Addr) -> H256 {
     let addr = address.as_bytes().to_owned();

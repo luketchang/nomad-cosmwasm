@@ -6,7 +6,7 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use ethers_core::types::H256;
-use lib::{addr_to_bytes32, destination_and_nonce, h256_to_string, Encode, NomadMessage};
+use lib::{addr_to_bytes32, destination_and_nonce, Encode, NomadMessage};
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -330,20 +330,16 @@ pub fn query_updater_manager(deps: Deps) -> StdResult<UpdaterManagerResponse> {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::TryInto;
-
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
     use merkle::merkle_tree::INITIAL_ROOT;
     use merkle::msg::RootResponse;
-    use nomad_base::msg::{LocalDomainResponse, StateResponse, UpdaterResponse};
-    use queue::msg::{LastItemResponse, LengthResponse};
-    use test_utils::event_attr_value_by_key;
+    use nomad_base::msg::{LocalDomainResponse, StateResponse, UpdaterResponse, CommittedRootResponse};
+    use queue::msg::{EndResponse as QueueEndResponse, LengthResponse as QueueLengthResponse};
+    use test_utils::{event_attr_value_by_key, h256_to_string};
 
     const LOCAL_DOMAIN: u32 = 1000;
-    const UPDATER_PRIVKEY: &str =
-        "1111111111111111111111111111111111111111111111111111111111111111";
     const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
 
     #[test]
@@ -401,12 +397,12 @@ mod tests {
         // ------ QUEUE ------
         // Length 0
         let res = query(deps.as_ref(), mock_env(), QueryMsg::QueueLength {}).unwrap();
-        let value: LengthResponse = from_binary(&res).unwrap();
+        let value: QueueLengthResponse = from_binary(&res).unwrap();
         assert_eq!(0, value.length);
 
         // Last item defaults to 0x0
         let res = query(deps.as_ref(), mock_env(), QueryMsg::QueueEnd {}).unwrap();
-        let value: LastItemResponse = from_binary(&res).unwrap();
+        let value: QueueEndResponse = from_binary(&res).unwrap();
         assert_eq!(H256::zero(), value.item);
     }
 
@@ -446,10 +442,6 @@ mod tests {
 
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
-
-        // Get root before state changes
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::Root {}).unwrap();
-        let initial_root = from_binary::<RootResponse>(&res).unwrap().root;
 
         // Create message
         let sender = H256::repeat_byte(0);
@@ -498,5 +490,68 @@ mod tests {
             format!("{:?}", nomad_message.to_vec()),
             event_attr_value_by_key(&dispatch_event, "message").unwrap()
         );
+    }
+
+    #[test]
+    fn suggests_updates() {
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
+
+        let msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Get committed root
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::CommittedRoot {}).unwrap();
+        let committed_root = from_binary::<CommittedRootResponse>(&res).unwrap().committed_root;
+
+        // Dispatch message
+        let info = mock_info("dispatcher", &coins(100, "earth"));
+        let msg = ExecuteMsg::Dispatch {
+            destination: 2000,
+            recipient: "recipient".to_owned(),
+            message_body: [0u8].repeat(100),
+        };
+        let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Get root at end of queue
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::QueueEnd {}).unwrap();
+        let latest_root = from_binary::<QueueEndResponse>(&res).unwrap().item;
+
+        // Suggested update contains committed and latest roots
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::SuggestUpdate {}).unwrap();
+        let suggested_update = from_binary::<SuggestUpdateResponse>(&res).unwrap();
+
+        assert_eq!(committed_root, suggested_update.committed_root);
+        assert_eq!(latest_root, suggested_update.new_root);
+    }
+
+    #[test]
+    fn suggests_zero_update_values_on_empty_queue() {
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
+
+        let msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Queue is empty
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::QueueLength {}).unwrap();
+        let length = from_binary::<QueueLengthResponse>(&res).unwrap().length;
+        assert_eq!(0, length);
+
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::SuggestUpdate {}).unwrap();
+        let suggested_update = from_binary::<SuggestUpdateResponse>(&res).unwrap();
+
+        assert_eq!(H256::zero(), suggested_update.committed_root);
+        assert_eq!(H256::zero(), suggested_update.new_root);
     }
 }
