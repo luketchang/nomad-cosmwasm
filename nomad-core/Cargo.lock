@@ -1249,6 +1249,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "replica"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus",
+ "cw2",
+ "ethers-core",
+ "lib",
+ "nomad-base",
+ "ownable",
+ "schemars",
+ "serde",
+ "test-utils",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "ripemd160"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
