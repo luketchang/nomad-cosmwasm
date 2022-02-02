@@ -1,4 +1,5 @@
 use cosmwasm_std::StdError;
+use ethers_core::types::H256;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -8,6 +9,9 @@ pub enum ContractError {
 
     #[error("Message length {length} too long")]
     MsgTooLong { length: u128 },
+
+    #[error("Not a current committed root: {old_root}")]
+    NotCurrentCommittedRoot { old_root: H256 },
 
     #[error("Not updater signature")]
     NotUpdaterSignature,

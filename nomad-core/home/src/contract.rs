@@ -187,9 +187,9 @@ pub fn try_update(
     Ok(Response::new().add_event(
         Event::new("Update")
             .add_attribute("local_domain", local_domain.to_string())
-            .add_attribute("committed_root", committed_root.to_string())
-            .add_attribute("new_root", new_root.to_string())
-            .add_attribute("signature", String::from_utf8_lossy(&signature)),
+            .add_attribute("committed_root", format!("{:?}", committed_root))
+            .add_attribute("new_root", format!("{:?}", new_root))
+            .add_attribute("signature", format!("{:?}", signature)),
     ))
 }
 
@@ -206,13 +206,18 @@ pub fn try_improper_update(
         return Err(ContractError::NotUpdaterSignature);
     }
 
+    let committed_root = nomad_base::contract::query_committed_root(deps.as_ref())?.committed_root;
+    if old_root != committed_root {
+        return Err(ContractError::NotCurrentCommittedRoot { old_root });
+    }
+
     if !queue::contract::query_contains(deps.as_ref(), new_root)?.contains {
         _fail(deps, info)?;
         return Ok(Response::new().add_event(
             Event::new("ImproperUpdate")
-                .add_attribute("old_root", old_root.to_string())
-                .add_attribute("new_root", new_root.to_string())
-                .add_attribute("signature", String::from_utf8_lossy(signature)),
+                .add_attribute("old_root", format!("{:?}", old_root))
+                .add_attribute("new_root", format!("{:?}", new_root))
+                .add_attribute("signature", format!("{:?}", signature)),
         ));
     }
 
@@ -335,11 +340,16 @@ mod tests {
     use cosmwasm_std::{coins, from_binary};
     use merkle::merkle_tree::INITIAL_ROOT;
     use merkle::msg::RootResponse;
-    use nomad_base::msg::{LocalDomainResponse, StateResponse, UpdaterResponse, CommittedRootResponse};
+    use nomad_base::msg::{
+        CommittedRootResponse, LocalDomainResponse, StateResponse, UpdaterResponse,
+    };
     use queue::msg::{EndResponse as QueueEndResponse, LengthResponse as QueueLengthResponse};
+    use test_utils::Updater;
     use test_utils::{event_attr_value_by_key, h256_to_string};
 
     const LOCAL_DOMAIN: u32 = 1000;
+    const UPDATER_PRIVKEY: &str =
+        "1111111111111111111111111111111111111111111111111111111111111111";
     const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
 
     #[test]
@@ -507,7 +517,9 @@ mod tests {
 
         // Get committed root
         let res = query(deps.as_ref(), mock_env(), QueryMsg::CommittedRoot {}).unwrap();
-        let committed_root = from_binary::<CommittedRootResponse>(&res).unwrap().committed_root;
+        let committed_root = from_binary::<CommittedRootResponse>(&res)
+            .unwrap()
+            .committed_root;
 
         // Dispatch message
         let info = mock_info("dispatcher", &coins(100, "earth"));
@@ -553,5 +565,134 @@ mod tests {
 
         assert_eq!(H256::zero(), suggested_update.committed_root);
         assert_eq!(H256::zero(), suggested_update.new_root);
+    }
+
+    #[tokio::test]
+    async fn accepts_valid_update() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
+        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
+
+        let init_msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Dispatch message
+        let info = mock_info("dispatcher", &coins(100, "earth"));
+        let msg = ExecuteMsg::Dispatch {
+            destination: 2000,
+            recipient: "recipient".to_owned(),
+            message_body: [0u8].repeat(100),
+        };
+        let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Get update and sign
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::SuggestUpdate {}).unwrap();
+        let SuggestUpdateResponse {
+            committed_root,
+            new_root,
+        } = from_binary::<SuggestUpdateResponse>(&res).unwrap();
+        let update = updater.sign_update(committed_root, new_root).await.unwrap();
+
+        // Submit update
+        let info = mock_info("submitter", &coins(100, "earth"));
+        let msg = ExecuteMsg::Update {
+            committed_root,
+            new_root,
+            signature: update.signature.to_vec(),
+        };
+        let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Check update event
+        let event = &res.events[0];
+        assert_eq!("Update", event.ty);
+        assert_eq!(
+            format!("{:?}", committed_root),
+            event_attr_value_by_key(&event, "committed_root").unwrap()
+        );
+        assert_eq!(
+            format!("{:?}", new_root),
+            event_attr_value_by_key(&event, "new_root").unwrap()
+        );
+        assert_eq!(
+            format!("{:?}", update.signature.to_vec()),
+            event_attr_value_by_key(&event, "signature").unwrap()
+        );
+
+        // Expect queue is empty
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::QueueLength {}).unwrap();
+        let length = from_binary::<QueueLengthResponse>(&res).unwrap().length;
+        assert_eq!(0, length);
+    }
+
+    #[tokio::test]
+    async fn batch_accepts_updates() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
+        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
+
+        let init_msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Dispatch several messages
+        let info = mock_info("dispatcher", &coins(100, "earth"));
+        for i in 1..3 {
+            let msg = ExecuteMsg::Dispatch {
+                destination: i * 1000,
+                recipient: "recipient".to_owned(),
+                message_body: [i as u8].repeat(100),
+            };
+
+            execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+        }
+
+        // Get update and sign
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::SuggestUpdate {}).unwrap();
+        let SuggestUpdateResponse {
+            committed_root,
+            new_root,
+        } = from_binary::<SuggestUpdateResponse>(&res).unwrap();
+        let update = updater.sign_update(committed_root, new_root).await.unwrap();
+
+        // Submit update
+        let info = mock_info("submitter", &coins(100, "earth"));
+        let msg = ExecuteMsg::Update {
+            committed_root,
+            new_root,
+            signature: update.signature.to_vec(),
+        };
+        let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Check update event
+        let event = &res.events[0];
+        assert_eq!("Update", event.ty);
+        assert_eq!(
+            format!("{:?}", committed_root),
+            event_attr_value_by_key(&event, "committed_root").unwrap()
+        );
+        assert_eq!(
+            format!("{:?}", new_root),
+            event_attr_value_by_key(&event, "new_root").unwrap()
+        );
+        assert_eq!(
+            format!("{:?}", update.signature.to_vec()),
+            event_attr_value_by_key(&event, "signature").unwrap()
+        );
+
+        // Expect queue is empty
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::QueueLength {}).unwrap();
+        let length = from_binary::<QueueLengthResponse>(&res).unwrap().length;
+        assert_eq!(0, length);
     }
 }

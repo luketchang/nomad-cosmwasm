@@ -8,8 +8,8 @@ use ethers_core::types::H256;
 
 use crate::error::ContractError;
 use crate::msg::{
-    ContainsResponse, ExecuteMsg, InstantiateMsg, IsEmptyResponse, EndResponse,
-    LengthResponse, FrontResponse, QueryMsg,
+    ContainsResponse, EndResponse, ExecuteMsg, FrontResponse, InstantiateMsg, IsEmptyResponse,
+    LengthResponse, QueryMsg,
 };
 use crate::state::QUEUE;
 
