@@ -91,10 +91,10 @@ pub fn try_double_update(
         fail(deps, info)?;
         return Ok(Response::new().add_event(
             Event::new("DoubleUpdate")
-                .add_attribute("old_root", new_roots[0].to_string())
-                .add_attribute("new_root", new_roots[1].to_string())
-                .add_attribute("signature", String::from_utf8_lossy(&signature))
-                .add_attribute("signature_2", String::from_utf8_lossy(&signature_2)),
+                .add_attribute("old_root", format!("{:?}", old_root))
+                .add_attribute("new_roots", format!("{:?}", new_roots))
+                .add_attribute("signature", format!("{:?}", signature))
+                .add_attribute("signature_2", format!("{:?}", signature_2)),
         ));
     }
 

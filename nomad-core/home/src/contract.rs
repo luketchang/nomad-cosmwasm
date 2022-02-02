@@ -749,4 +749,196 @@ mod tests {
 
         assert!(res.is_err());
     }
+
+    #[tokio::test]
+    async fn catches_improper_update() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
+        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
+
+        let init_msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Dispatch several messages
+        let info = mock_info("dispatcher", &coins(100, "earth"));
+        for i in 1..3 {
+            let msg = ExecuteMsg::Dispatch {
+                destination: i * 1000,
+                recipient: "recipient".to_owned(),
+                message_body: [i as u8].repeat(100),
+            };
+
+            execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+        }
+
+        // Sign improper update
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::SuggestUpdate {}).unwrap();
+        let SuggestUpdateResponse {
+            committed_root,
+            new_root: _,
+        } = from_binary::<SuggestUpdateResponse>(&res).unwrap();
+
+        let improper_root = H256::repeat_byte(1);
+        let update = updater
+            .sign_update(committed_root, improper_root)
+            .await
+            .unwrap();
+
+        // Submit improper update
+        let info = mock_info("submitter", &coins(100, "earth"));
+        let msg = ExecuteMsg::Update {
+            committed_root,
+            new_root: improper_root,
+            signature: update.signature.to_vec(),
+        };
+        let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Check for improper update event
+        assert_eq!("ImproperUpdate".to_owned(), res.events[0].ty);
+
+        // Check home failed
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::State {}).unwrap();
+        let state = from_binary::<StateResponse>(&res).unwrap().state;
+        assert_eq!(2, state);
+    }
+
+    #[tokio::test]
+    async fn rejects_update_from_non_updater() {
+        let not_updater_privkey =
+            "2111111111111111111111111111111111111111111111111111111111111111";
+        let not_updater: Updater = Updater::from_privkey(not_updater_privkey, LOCAL_DOMAIN);
+
+        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
+
+        let init_msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Dispatch several messages
+        let info = mock_info("dispatcher", &coins(100, "earth"));
+        for i in 1..3 {
+            let msg = ExecuteMsg::Dispatch {
+                destination: i * 1000,
+                recipient: "recipient".to_owned(),
+                message_body: [i as u8].repeat(100),
+            };
+
+            execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+        }
+
+        // Sign update with wrong updater
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::SuggestUpdate {}).unwrap();
+        let SuggestUpdateResponse {
+            committed_root,
+            new_root,
+        } = from_binary::<SuggestUpdateResponse>(&res).unwrap();
+        let update = not_updater
+            .sign_update(committed_root, new_root)
+            .await
+            .unwrap();
+
+        // Submit update and ensure error
+        let info = mock_info("submitter", &coins(100, "earth"));
+        let msg = ExecuteMsg::Update {
+            committed_root,
+            new_root,
+            signature: update.signature.to_vec(),
+        };
+        let res = execute(deps.as_mut(), mock_env(), info, msg);
+        assert!(res.is_err());
+
+        // Ensure no state changes
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::SuggestUpdate {}).unwrap();
+        let SuggestUpdateResponse {
+            committed_root: check_committed_root,
+            new_root: check_new_root,
+        } = from_binary::<SuggestUpdateResponse>(&res).unwrap();
+        assert_eq!(committed_root, check_committed_root);
+        assert_eq!(new_root, check_new_root);
+    }
+
+    #[tokio::test]
+    async fn failed_on_valid_double_update() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
+        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
+
+        let init_msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Dispatch several messages
+        let info = mock_info("dispatcher", &coins(100, "earth"));
+        for i in 1..3 {
+            let msg = ExecuteMsg::Dispatch {
+                destination: i * 1000,
+                recipient: "recipient".to_owned(),
+                message_body: [i as u8].repeat(100),
+            };
+
+            execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+        }
+
+        // Sign double update
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::SuggestUpdate {}).unwrap();
+        let SuggestUpdateResponse {
+            committed_root,
+            new_root,
+        } = from_binary::<SuggestUpdateResponse>(&res).unwrap();
+
+        let bad_root = H256::repeat_byte(1);
+        let update = updater.sign_update(committed_root, new_root).await.unwrap();
+        let bad_update = updater.sign_update(committed_root, bad_root).await.unwrap();
+
+        // Submit double update
+        let info = mock_info("submitter", &coins(100, "earth"));
+        let msg = ExecuteMsg::DoubleUpdate {
+            old_root: committed_root,
+            new_roots: [new_root, bad_root],
+            signature: update.signature.to_vec(),
+            signature_2: bad_update.signature.to_vec(),
+        };
+        let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Check emitted event
+        let event = &res.events[0];
+        assert_eq!("DoubleUpdate".to_owned(), event.ty);
+        assert_eq!(
+            format!("{:?}", committed_root),
+            event_attr_value_by_key(&event, "old_root").unwrap()
+        );
+        assert_eq!(
+            format!("{:?}", [new_root, bad_root]),
+            event_attr_value_by_key(&event, "new_roots").unwrap()
+        );
+        assert_eq!(
+            format!("{:?}", update.signature.to_vec()),
+            event_attr_value_by_key(&event, "signature").unwrap()
+        );
+        assert_eq!(
+            format!("{:?}", bad_update.signature.to_vec()),
+            event_attr_value_by_key(&event, "signature_2").unwrap()
+        );
+
+        // Check home failed
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::State {}).unwrap();
+        let state = from_binary::<StateResponse>(&res).unwrap().state;
+        assert_eq!(2, state);
+    }
 }
