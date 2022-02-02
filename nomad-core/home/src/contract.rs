@@ -168,8 +168,13 @@ pub fn try_update(
 ) -> Result<Response, ContractError> {
     nomad_base::contract::not_failed(deps.as_ref())?;
 
-    if try_improper_update(deps.branch(), info, committed_root, new_root, &signature).is_ok() {
-        return Ok(Response::new()); // kludge?
+    // TODO: clean up
+    let improper_update_res =
+        try_improper_update(deps.branch(), info, committed_root, new_root, &signature)?;
+    let improper_update: bool = from_binary(&improper_update_res.clone().data.unwrap())?;
+
+    if improper_update {
+        return Ok(improper_update_res);
     }
 
     loop {
@@ -213,7 +218,7 @@ pub fn try_improper_update(
 
     if !queue::contract::query_contains(deps.as_ref(), new_root)?.contains {
         _fail(deps, info)?;
-        return Ok(Response::new().add_event(
+        return Ok(Response::new().set_data(to_binary(&true)?).add_event(
             Event::new("ImproperUpdate")
                 .add_attribute("old_root", format!("{:?}", old_root))
                 .add_attribute("new_root", format!("{:?}", new_root))
@@ -221,7 +226,7 @@ pub fn try_improper_update(
         ));
     }
 
-    Err(ContractError::NotImproperUpdate)
+    Ok(Response::new().set_data(to_binary(&false)?))
 }
 
 pub fn try_set_updater(
@@ -694,5 +699,54 @@ mod tests {
         let res = query(deps.as_ref(), mock_env(), QueryMsg::QueueLength {}).unwrap();
         let length = from_binary::<QueueLengthResponse>(&res).unwrap().length;
         assert_eq!(0, length);
+    }
+
+    #[tokio::test]
+    async fn rejects_update_not_building_off_current_committed() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
+        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
+
+        let init_msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Dispatch several messages
+        let info = mock_info("dispatcher", &coins(100, "earth"));
+        for i in 1..3 {
+            let msg = ExecuteMsg::Dispatch {
+                destination: i * 1000,
+                recipient: "recipient".to_owned(),
+                message_body: [i as u8].repeat(100),
+            };
+
+            execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+        }
+
+        // Sign update building off random root
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::SuggestUpdate {}).unwrap();
+        let SuggestUpdateResponse {
+            committed_root: _,
+            new_root,
+        } = from_binary::<SuggestUpdateResponse>(&res).unwrap();
+
+        let random_root = H256::repeat_byte(1);
+        let update = updater.sign_update(random_root, new_root).await.unwrap();
+
+        // Expect update submission to return error
+        let info = mock_info("submitter", &coins(100, "earth"));
+        let msg = ExecuteMsg::Update {
+            committed_root: random_root,
+            new_root,
+            signature: update.signature.to_vec(),
+        };
+        let res = execute(deps.as_mut(), mock_env(), info, msg);
+
+        assert!(res.is_err());
     }
 }
