@@ -350,6 +350,7 @@ mod tests {
     use queue::msg::{EndResponse as QueueEndResponse, LengthResponse as QueueLengthResponse};
     use test_utils::Updater;
     use test_utils::{event_attr_value_by_key, h256_to_string};
+    use nomad_base::state::States;
 
     const LOCAL_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =
@@ -390,7 +391,7 @@ mod tests {
         // State
         let res = query(deps.as_ref(), mock_env(), QueryMsg::State {}).unwrap();
         let value: StateResponse = from_binary(&res).unwrap();
-        assert_eq!(1, value.state);
+        assert_eq!(States::Active, value.state);
 
         // Local domain
         let res = query(deps.as_ref(), mock_env(), QueryMsg::LocalDomain {}).unwrap();
@@ -804,7 +805,7 @@ mod tests {
         // Check home failed
         let res = query(deps.as_ref(), mock_env(), QueryMsg::State {}).unwrap();
         let state = from_binary::<StateResponse>(&res).unwrap().state;
-        assert_eq!(2, state);
+        assert_eq!(States::Failed, state);
     }
 
     #[tokio::test]
@@ -938,7 +939,7 @@ mod tests {
         // Check home failed
         let res = query(deps.as_ref(), mock_env(), QueryMsg::State {}).unwrap();
         let state = from_binary::<StateResponse>(&res).unwrap().state;
-        assert_eq!(2, state);
+        assert_eq!(States::Failed, state);
     }
 
     #[test]

@@ -13,7 +13,7 @@ use crate::msg::{
     CommittedRootResponse, ExecuteMsg, HomeDomainHashResponse, InstantiateMsg, LocalDomainResponse,
     QueryMsg, StateResponse, UpdaterResponse,
 };
-use crate::state::{State, States, STATE};
+use crate::state::{States, LOCAL_DOMAIN, UPDATER, STATE, COMMITTED_ROOT};
 use ownable::contract::{
     instantiate as ownable_instantiate, query_owner, try_renounce_ownership, try_transfer_ownership,
 };
@@ -33,15 +33,11 @@ pub fn instantiate(
 
     let updater = deps.api.addr_validate(&msg.updater)?;
 
-    let state = State {
-        local_domain: msg.local_domain,
-        updater,
-        state: crate::state::States::Active,
-        committed_root: H256::zero(),
-    };
-
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    STATE.save(deps.storage, &state)?;
+    LOCAL_DOMAIN.save(deps.storage, &msg.local_domain)?;
+    UPDATER.save(deps.storage, &updater)?;
+    STATE.save(deps.storage, &States::Active)?;
+    COMMITTED_ROOT.save(deps.storage, &H256::zero())?;
 
     Ok(Response::new()
         .add_attribute("method", "instantiate")
@@ -51,7 +47,7 @@ pub fn instantiate(
 
 pub fn not_failed(deps: Deps) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
-    if state.state == States::Failed {
+    if state == States::Failed {
         return Err(ContractError::NotFailedError {});
     }
 
@@ -125,27 +121,19 @@ pub fn is_updater_signature(
 }
 
 pub fn _set_failed(deps: DepsMut) -> Result<Response, ContractError> {
-    let mut state = STATE.load(deps.storage)?;
-    state.state = States::Failed;
-    STATE.save(deps.storage, &state)?;
-
+    STATE.save(deps.storage, &States::Failed)?;
     Ok(Response::new())
 }
 
 pub fn _set_updater(deps: DepsMut, updater: String) -> Result<Response, ContractError> {
     let updater_addr = deps.api.addr_validate(&updater)?;
-
-    let mut state = STATE.load(deps.storage)?;
-    state.updater = updater_addr;
-    STATE.save(deps.storage, &state)?;
+    UPDATER.save(deps.storage, &updater_addr)?;
 
     Ok(Response::new())
 }
 
 pub fn _set_committed_root(deps: DepsMut, root: H256) -> Result<Response, ContractError> {
-    let mut state = STATE.load(deps.storage)?;
-    state.committed_root = root;
-    STATE.save(deps.storage, &state)?;
+    COMMITTED_ROOT.save(deps.storage, &root)?;
 
     Ok(Response::new())
 }
@@ -163,16 +151,14 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 pub fn query_committed_root(deps: Deps) -> StdResult<CommittedRootResponse> {
-    let state = STATE.load(deps.storage)?;
+    let committed_root = COMMITTED_ROOT.load(deps.storage)?;
     Ok(CommittedRootResponse {
-        committed_root: state.committed_root,
+        committed_root,
     })
 }
 
 pub fn query_home_domain_hash(deps: Deps) -> StdResult<HomeDomainHashResponse> {
-    let state = STATE.load(deps.storage)?;
-    let domain = state.local_domain;
-
+    let domain = LOCAL_DOMAIN.load(deps.storage)?;
     let home_domain_hash = H256::from_slice(
         Keccak256::new()
             .chain(domain.to_be_bytes())
@@ -181,30 +167,22 @@ pub fn query_home_domain_hash(deps: Deps) -> StdResult<HomeDomainHashResponse> {
             .as_slice(),
     );
 
-    Ok(HomeDomainHashResponse {
-        home_domain_hash: home_domain_hash.into(),
-    })
+    Ok(HomeDomainHashResponse { home_domain_hash })
 }
 
 pub fn query_local_domain(deps: Deps) -> StdResult<LocalDomainResponse> {
-    let state = STATE.load(deps.storage)?;
-    Ok(LocalDomainResponse {
-        local_domain: state.local_domain,
-    })
+    let local_domain = LOCAL_DOMAIN.load(deps.storage)?;
+    Ok(LocalDomainResponse { local_domain })
 }
 
 pub fn query_state(deps: Deps) -> StdResult<StateResponse> {
     let state = STATE.load(deps.storage)?;
-    Ok(StateResponse {
-        state: state.state as u8,
-    })
+    Ok(StateResponse { state })
 }
 
 pub fn query_updater(deps: Deps) -> StdResult<UpdaterResponse> {
-    let state = STATE.load(deps.storage)?;
-    Ok(UpdaterResponse {
-        updater: state.updater.to_string(),
-    })
+    let updater = UPDATER.load(deps.storage)?.to_string();
+    Ok(UpdaterResponse { updater })
 }
 
 #[cfg(test)]
@@ -245,7 +223,7 @@ mod tests {
         // State
         let res = query(deps.as_ref(), mock_env(), QueryMsg::State {}).unwrap();
         let value: StateResponse = from_binary(&res).unwrap();
-        assert_eq!(1, value.state);
+        assert_eq!(States::Active, value.state);
 
         // Local domain
         let res = query(deps.as_ref(), mock_env(), QueryMsg::LocalDomain {}).unwrap();

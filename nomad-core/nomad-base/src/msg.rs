@@ -1,6 +1,8 @@
 use ethers_core::types::H256;
 use serde::{Deserialize, Serialize};
 
+use crate::state::States;
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InstantiateMsg {
     pub local_domain: u32,
@@ -60,7 +62,7 @@ pub struct LocalDomainResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct StateResponse {
     /// State
-    pub state: u8,
+    pub state: States,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

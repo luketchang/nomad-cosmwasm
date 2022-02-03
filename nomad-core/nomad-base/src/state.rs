@@ -26,4 +26,7 @@ pub struct State {
     pub committed_root: H256,
 }
 
-pub const STATE: Item<State> = Item::new("nomad_base_state");
+pub const LOCAL_DOMAIN: Item<u32> = Item::new("nomad_base_local_domain");
+pub const UPDATER: Item<Addr> = Item::new("nomad_base_updater");
+pub const STATE: Item<States> = Item::new("nomad_base_state");
+pub const COMMITTED_ROOT: Item<H256> = Item::new("nomad_base_committed_root");

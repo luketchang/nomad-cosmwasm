@@ -352,6 +352,7 @@ mod tests {
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
     use nomad_base::msg::{LocalDomainResponse, StateResponse, UpdaterResponse};
+    use nomad_base::state::States;
 
     const LOCAL_DOMAIN: u32 = 2000;
     const REMOTE_DOMAIN: u32 = 1000;
@@ -390,7 +391,7 @@ mod tests {
         // State
         let res = query(deps.as_ref(), mock_env(), QueryMsg::State {}).unwrap();
         let value: StateResponse = from_binary(&res).unwrap();
-        assert_eq!(1, value.state);
+        assert_eq!(States::Active, value.state);
 
         // Local domain
         let res = query(deps.as_ref(), mock_env(), QueryMsg::LocalDomain {}).unwrap();

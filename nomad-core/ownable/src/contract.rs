@@ -5,7 +5,7 @@ use cw2::set_contract_version;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, OwnerResponse, QueryMsg};
-use crate::state::{State, STATE};
+use crate::state::OWNER;
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:ownable";
@@ -18,12 +18,8 @@ pub fn instantiate(
     info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    let state = State {
-        owner: info.sender.clone(),
-    };
-
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    STATE.save(deps.storage, &state)?;
+    OWNER.save(deps.storage, &info.sender.clone())?;
 
     Ok(Response::new()
         .add_attribute("method", "instantiate")
@@ -31,9 +27,9 @@ pub fn instantiate(
 }
 
 pub fn only_owner(deps: Deps, info: MessageInfo) -> Result<Response, ContractError> {
-    let state = STATE.load(deps.storage)?;
+    let owner = OWNER.load(deps.storage)?;
 
-    if info.sender != state.owner {
+    if info.sender != owner {
         return Err(ContractError::Unauthorized {});
     }
 
@@ -57,12 +53,7 @@ pub fn execute(
 
 pub fn try_renounce_ownership(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
     only_owner(deps.as_ref(), info)?;
-
-    let mut state = STATE.load(deps.storage)?;
-    state.owner = Addr::unchecked("0x0");
-
-    STATE.save(deps.storage, &state)?;
-
+    OWNER.save(deps.storage, &Addr::unchecked("0x0"))?;
     Ok(Response::new().add_attribute("action", "renounce_ownership"))
 }
 
@@ -74,10 +65,7 @@ pub fn try_transfer_ownership(
     only_owner(deps.as_ref(), info)?;
 
     let new_owner = deps.api.addr_validate(&new_owner)?;
-
-    let mut state = STATE.load(deps.storage)?;
-    state.owner = new_owner.to_owned();
-    STATE.save(deps.storage, &state)?;
+    OWNER.save(deps.storage, &new_owner.clone())?;
 
     Ok(Response::new()
         .add_attribute("action", "transfer_ownership")
@@ -92,10 +80,8 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 pub fn query_owner(deps: Deps) -> StdResult<OwnerResponse> {
-    let state = STATE.load(deps.storage)?;
-    Ok(OwnerResponse {
-        owner: state.owner.to_string(),
-    })
+    let owner = OWNER.load(deps.storage)?.to_string();
+    Ok(OwnerResponse { owner })
 }
 
 #[cfg(test)]
