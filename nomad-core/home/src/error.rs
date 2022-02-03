@@ -25,8 +25,8 @@ pub enum ContractError {
     #[error("Unknown reply message id received: {id}")]
     UnknownReplyMessage { id: u64 },
 
-    #[error("Failed reply to slash updater: {0}")]
-    FailedSlashUpdaterReply(String),
+    #[error("Failed to call slash updater on updater manager: {0}")]
+    FailedSlashUpdaterCall(String),
 
     #[error("{0}")]
     OwnableError(#[from] ownable::ContractError),

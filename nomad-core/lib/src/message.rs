@@ -35,6 +35,14 @@ pub struct Message {
     pub body: Vec<u8>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct HandleMsg {
+    origin: u32,
+    nonce: u32,
+    sender: H256,
+    message: Vec<u8>,
+}
+
 impl NomadMessage {
     /// Convert the message to a leaf
     pub fn to_leaf(&self) -> H256 {
@@ -98,5 +106,16 @@ impl std::fmt::Display for NomadMessage {
             "NomadMessage {}->{}:{}",
             self.origin, self.destination, self.nonce,
         )
+    }
+}
+
+impl From<NomadMessage> for HandleMsg {
+    fn from(msg: NomadMessage) -> Self {
+        Self {
+            origin: msg.origin,
+            nonce: msg.nonce,
+            sender: msg.sender,
+            message: msg.body,
+        }
     }
 }

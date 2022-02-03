@@ -44,7 +44,7 @@ pub enum ExecuteMsg {
         message: Vec<u8>,
     },
     ProveAndProcess {
-        leaf: H256,
+        message: Vec<u8>,
         proof: [H256; 32],
         index: u64,
     },

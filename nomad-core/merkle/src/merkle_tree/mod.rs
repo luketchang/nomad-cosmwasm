@@ -45,12 +45,7 @@ pub(super) fn hash_concat(left: impl AsRef<[u8]>, right: impl AsRef<[u8]>) -> H2
 }
 
 /// Compute a root hash from a leaf and a Merkle proof.
-pub(super) fn merkle_root_from_branch(
-    leaf: H256,
-    branch: &[H256],
-    depth: usize,
-    index: usize,
-) -> H256 {
+pub fn merkle_root_from_branch(leaf: H256, branch: &[H256], depth: usize, index: usize) -> H256 {
     assert_eq!(branch.len(), depth, "proof length should equal depth");
 
     let mut current = leaf;

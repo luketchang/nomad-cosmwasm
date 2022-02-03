@@ -147,7 +147,7 @@ pub fn try_dispatch(
 
     Ok(Response::new().add_event(
         Event::new("Dispatch")
-            .add_attribute("message_hash", hash.to_string())
+            .add_attribute("message_hash", format!("{:?}", hash))
             .add_attribute("leaf_index", leaf_index.to_string())
             .add_attribute(
                 "destination_and_nonce",
@@ -286,7 +286,7 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
 pub fn reply_slash_updater(_deps: Deps, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.result {
         ContractResult::Ok(res) => Ok(Response::new().add_events(res.events)),
-        ContractResult::Err(e) => Err(ContractError::FailedSlashUpdaterReply(e)),
+        ContractResult::Err(e) => Err(ContractError::FailedSlashUpdaterCall(e)),
     }
 }
 
@@ -485,7 +485,7 @@ mod tests {
         let dispatch_event = &res.events[0];
         assert_eq!("Dispatch", dispatch_event.ty);
         assert_eq!(
-            nomad_message.to_leaf().to_string(),
+            format!("{:?}", nomad_message.to_leaf()),
             event_attr_value_by_key(&dispatch_event, "message_hash").unwrap()
         );
         assert_eq!(

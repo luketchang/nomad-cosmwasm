@@ -87,6 +87,7 @@ pub fn try_set_updater(
     let updater_addr = deps.api.addr_validate(&updater)?;
     UPDATER.save(deps.storage, &updater_addr)?;
 
+    // TODO: submessage call to home to set updater
     Ok(Response::new().add_event(Event::new("SetUpdater").add_attribute("updater", updater)))
 }
 

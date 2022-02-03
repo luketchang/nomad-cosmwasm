@@ -1,4 +1,4 @@
-use cosmwasm_std::Addr;
+use cosmwasm_std::{Addr, CanonicalAddr, Deps};
 use ethers_core::types::{SignatureError, H256};
 use std::io::Write;
 
@@ -45,4 +45,9 @@ pub fn addr_to_bytes32(address: Addr) -> H256 {
 
     let sized: [u8; 32] = buf.try_into().unwrap();
     H256::from(sized)
+}
+
+pub fn bytes32_to_addr(deps: Deps, bytes32: H256) -> Addr {
+    let canonical: CanonicalAddr = bytes32.as_bytes().into();
+    deps.api.addr_humanize(&canonical).unwrap()
 }
