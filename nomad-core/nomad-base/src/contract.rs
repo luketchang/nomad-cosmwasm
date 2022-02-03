@@ -14,7 +14,7 @@ use crate::msg::{
     QueryMsg, StateResponse, UpdaterResponse,
 };
 use crate::state::{States, LOCAL_DOMAIN, UPDATER, STATE, COMMITTED_ROOT};
-use ownable::contract::{
+use ownable::{
     instantiate as ownable_instantiate, query_owner, try_renounce_ownership, try_transfer_ownership,
 };
 

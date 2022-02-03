@@ -28,11 +28,11 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    nomad_base::contract::instantiate(deps.branch(), env, info, msg.clone().into())?;
+    nomad_base::instantiate(deps.branch(), env, info, msg.clone().into())?;
 
     REMOTE_DOMAIN.save(deps.storage, &msg.remote_domain)?;
     OPTIMISTIC_SECONDS.save(deps.storage, &msg.optimistic_seconds)?;
-    nomad_base::contract::_set_committed_root(deps.branch(), msg.committed_root)?;
+    nomad_base::_set_committed_root(deps.branch(), msg.committed_root)?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new())
@@ -56,7 +56,7 @@ pub fn execute(
             new_roots,
             signature,
             signature_2,
-        } => Ok(nomad_base::contract::try_double_update(
+        } => Ok(nomad_base::try_double_update(
             deps,
             info,
             old_root,
@@ -80,10 +80,10 @@ pub fn execute(
         }
         ExecuteMsg::SetUpdater { updater } => try_set_updater(deps, info, updater),
         ExecuteMsg::RenounceOwnership {} => {
-            Ok(ownable::contract::try_renounce_ownership(deps, info)?)
+            Ok(ownable::try_renounce_ownership(deps, info)?)
         }
         ExecuteMsg::TransferOwnership { new_owner } => Ok(
-            ownable::contract::try_transfer_ownership(deps, info, new_owner)?,
+            ownable::try_transfer_ownership(deps, info, new_owner)?,
         ),
     }
 }
@@ -95,14 +95,14 @@ pub fn try_update(
     new_root: H256,
     signature: Vec<u8>,
 ) -> Result<Response, ContractError> {
-    nomad_base::contract::not_failed(deps.as_ref())?;
+    nomad_base::not_failed(deps.as_ref())?;
 
-    let committed_root = nomad_base::contract::query_committed_root(deps.as_ref())?.committed_root;
+    let committed_root = nomad_base::query_committed_root(deps.as_ref())?.committed_root;
     if old_root != committed_root {
         return Err(ContractError::NotCurrentCommittedRoot { old_root });
     }
 
-    if !nomad_base::contract::is_updater_signature(deps.as_ref(), old_root, new_root, &signature)? {
+    if !nomad_base::is_updater_signature(deps.as_ref(), old_root, new_root, &signature)? {
         return Err(ContractError::NotUpdaterSignature);
     }
 
@@ -112,7 +112,7 @@ pub fn try_update(
     let confirm_at = env.block.time.seconds() + optimistic_seconds;
     CONFIRM_AT.save(deps.storage, new_root.as_bytes(), &confirm_at)?;
 
-    nomad_base::contract::_set_committed_root(deps.branch(), new_root)?;
+    nomad_base::_set_committed_root(deps.branch(), new_root)?;
 
     let remote_domain = query_remote_domain(deps.as_ref())?.remote_domain;
 
@@ -161,7 +161,7 @@ pub fn try_process(
     let nomad_message =
         NomadMessage::read_from(&mut message.as_slice()).expect("!message conversion");
 
-    let local_domain = nomad_base::contract::query_local_domain(deps.as_ref())?.local_domain;
+    let local_domain = nomad_base::query_local_domain(deps.as_ref())?.local_domain;
     if nomad_message.destination != local_domain {
         return Err(ContractError::WrongDestination {
             destination: nomad_message.destination,
@@ -225,7 +225,7 @@ pub fn try_set_confirmation(
     root: H256,
     confirm_at: u64,
 ) -> Result<Response, ContractError> {
-    ownable::contract::only_owner(deps.as_ref(), info)?;
+    ownable::only_owner(deps.as_ref(), info)?;
 
     let prev_confirm_at = CONFIRM_AT
         .may_load(deps.storage, root.as_bytes())?
@@ -245,7 +245,7 @@ pub fn try_set_optimistic_timeout(
     info: MessageInfo,
     optimistic_seconds: u64,
 ) -> Result<Response, ContractError> {
-    ownable::contract::only_owner(deps.as_ref(), info)?;
+    ownable::only_owner(deps.as_ref(), info)?;
     OPTIMISTIC_SECONDS.save(deps.storage, &optimistic_seconds)?;
     Ok(Response::new().add_event(
         Event::new("SetOptimisticTimeout")
@@ -258,12 +258,12 @@ pub fn try_set_updater(
     info: MessageInfo,
     updater: String,
 ) -> Result<Response, ContractError> {
-    ownable::contract::only_owner(deps.as_ref(), info)?;
-    Ok(nomad_base::contract::_set_updater(deps, updater)?)
+    ownable::only_owner(deps.as_ref(), info)?;
+    Ok(nomad_base::_set_updater(deps, updater)?)
 }
 
 fn _fail(mut deps: DepsMut, _info: MessageInfo) -> Result<Response, nomad_base::ContractError> {
-    nomad_base::contract::_set_failed(deps.branch())?;
+    nomad_base::_set_failed(deps.branch())?;
     Ok(Response::new())
 }
 
@@ -295,14 +295,14 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             return to_binary(&opt);
         }
         QueryMsg::RemoteDomain {} => to_binary(&query_remote_domain(deps)?),
-        QueryMsg::CommittedRoot {} => to_binary(&nomad_base::contract::query_committed_root(deps)?),
+        QueryMsg::CommittedRoot {} => to_binary(&nomad_base::query_committed_root(deps)?),
         QueryMsg::HomeDomainHash {} => {
-            to_binary(&nomad_base::contract::query_home_domain_hash(deps)?)
+            to_binary(&nomad_base::query_home_domain_hash(deps)?)
         }
-        QueryMsg::LocalDomain {} => to_binary(&nomad_base::contract::query_local_domain(deps)?),
-        QueryMsg::State {} => to_binary(&nomad_base::contract::query_state(deps)?),
-        QueryMsg::Updater {} => to_binary(&nomad_base::contract::query_updater(deps)?),
-        QueryMsg::Owner {} => to_binary(&ownable::contract::query_owner(deps)?),
+        QueryMsg::LocalDomain {} => to_binary(&nomad_base::query_local_domain(deps)?),
+        QueryMsg::State {} => to_binary(&nomad_base::query_state(deps)?),
+        QueryMsg::Updater {} => to_binary(&nomad_base::query_updater(deps)?),
+        QueryMsg::Owner {} => to_binary(&ownable::query_owner(deps)?),
     }
 }
 

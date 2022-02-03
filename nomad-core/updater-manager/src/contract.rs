@@ -22,7 +22,7 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     let updater = deps.api.addr_validate(&msg.updater)?;
 
-    ownable::contract::instantiate(
+    ownable::instantiate(
         deps.branch(),
         env.clone(),
         info.clone(),
@@ -56,10 +56,10 @@ pub fn execute(
         ExecuteMsg::SetUpdater { updater } => try_set_updater(deps, info, updater),
         ExecuteMsg::SlashUpdater { reporter } => try_slash_updater(deps, info, reporter),
         ExecuteMsg::RenounceOwnership {} => {
-            Ok(ownable::contract::try_renounce_ownership(deps, info)?)
+            Ok(ownable::try_renounce_ownership(deps, info)?)
         }
         ExecuteMsg::TransferOwnership { new_owner } => Ok(
-            ownable::contract::try_transfer_ownership(deps, info, new_owner)?,
+            ownable::try_transfer_ownership(deps, info, new_owner)?,
         ),
     }
 }
@@ -69,7 +69,7 @@ pub fn try_set_home(
     info: MessageInfo,
     home: String,
 ) -> Result<Response, ContractError> {
-    ownable::contract::only_owner(deps.as_ref(), info)?;
+    ownable::only_owner(deps.as_ref(), info)?;
 
     let home_addr = deps.api.addr_validate(&home)?;
     HOME.save(deps.storage, &home_addr)?;
@@ -82,7 +82,7 @@ pub fn try_set_updater(
     info: MessageInfo,
     updater: String,
 ) -> Result<Response, ContractError> {
-    ownable::contract::only_owner(deps.as_ref(), info)?;
+    ownable::only_owner(deps.as_ref(), info)?;
 
     let updater_addr = deps.api.addr_validate(&updater)?;
     UPDATER.save(deps.storage, &updater_addr)?;
@@ -106,7 +106,7 @@ pub fn try_slash_updater(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Updater {} => to_binary(&query_updater(deps)?),
-        QueryMsg::Owner {} => to_binary(&ownable::contract::query_owner(deps)?),
+        QueryMsg::Owner {} => to_binary(&ownable::query_owner(deps)?),
     }
 }
 

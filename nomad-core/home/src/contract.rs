@@ -28,9 +28,9 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    queue::contract::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
-    merkle::contract::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
-    nomad_base::contract::instantiate(
+    queue::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
+    merkle::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
+    nomad_base::instantiate(
         deps.branch(),
         env.clone(),
         info.clone(),
@@ -77,7 +77,7 @@ pub fn execute(
             new_roots,
             signature,
             signature_2,
-        } => Ok(nomad_base::contract::try_double_update(
+        } => Ok(nomad_base::try_double_update(
             deps,
             info,
             old_root,
@@ -96,10 +96,10 @@ pub fn execute(
             try_set_updater_manager(deps, info, updater_manager)
         }
         ExecuteMsg::RenounceOwnership {} => {
-            Ok(ownable::contract::try_renounce_ownership(deps, info)?)
+            Ok(ownable::try_renounce_ownership(deps, info)?)
         }
         ExecuteMsg::TransferOwnership { new_owner } => Ok(
-            ownable::contract::try_transfer_ownership(deps, info, new_owner)?,
+            ownable::try_transfer_ownership(deps, info, new_owner)?,
         ),
     }
 }
@@ -111,7 +111,7 @@ pub fn try_dispatch(
     recipient: String,
     message: Vec<u8>,
 ) -> Result<Response, ContractError> {
-    nomad_base::contract::not_failed(deps.as_ref())?;
+    nomad_base::not_failed(deps.as_ref())?;
 
     let length = message.len() as u64;
     if length > MAX_MESSAGE_BODY_BYTES {
@@ -121,7 +121,7 @@ pub fn try_dispatch(
     let nonce = query_nonces(deps.as_ref(), destination)?.next_nonce;
     NONCES.save(deps.storage, destination, &(nonce + 1))?;
 
-    let origin = nomad_base::contract::query_local_domain(deps.as_ref())?.local_domain;
+    let origin = nomad_base::query_local_domain(deps.as_ref())?.local_domain;
     let recipient_addr = deps.api.addr_validate(&recipient)?;
 
     let nomad_message = NomadMessage {
@@ -134,16 +134,16 @@ pub fn try_dispatch(
     };
 
     // Get state before mutations
-    let leaf_index = merkle::contract::query_count(deps.as_ref())?.count;
-    let committed_root = nomad_base::contract::query_committed_root(deps.as_ref())?.committed_root;
+    let leaf_index = merkle::query_count(deps.as_ref())?.count;
+    let committed_root = nomad_base::query_committed_root(deps.as_ref())?.committed_root;
 
     // Insert leaf into tree
     let hash: H256 = nomad_message.to_leaf();
-    merkle::contract::try_insert(deps.branch(), hash)?;
+    merkle::try_insert(deps.branch(), hash)?;
 
     // Enqueue merkle root
-    let root = merkle::contract::query_root(deps.as_ref())?.root;
-    queue::contract::try_enqueue(deps.branch(), root)?;
+    let root = merkle::query_root(deps.as_ref())?.root;
+    queue::try_enqueue(deps.branch(), root)?;
 
     Ok(Response::new().add_event(
         Event::new("Dispatch")
@@ -165,7 +165,7 @@ pub fn try_update(
     new_root: H256,
     signature: Vec<u8>,
 ) -> Result<Response, ContractError> {
-    nomad_base::contract::not_failed(deps.as_ref())?;
+    nomad_base::not_failed(deps.as_ref())?;
 
     // TODO: clean up
     let improper_update_res =
@@ -177,16 +177,16 @@ pub fn try_update(
     }
 
     loop {
-        let next_res = queue::contract::try_dequeue(deps.branch())?;
+        let next_res = queue::try_dequeue(deps.branch())?;
         let next: H256 = from_binary(&next_res.data.unwrap())?;
         if next == new_root {
             break;
         }
     }
 
-    nomad_base::contract::_set_committed_root(deps.branch(), new_root)?;
+    nomad_base::_set_committed_root(deps.branch(), new_root)?;
 
-    let local_domain = nomad_base::contract::query_local_domain(deps.as_ref())?.local_domain;
+    let local_domain = nomad_base::query_local_domain(deps.as_ref())?.local_domain;
 
     Ok(Response::new().add_event(
         Event::new("Update")
@@ -204,18 +204,18 @@ pub fn try_improper_update(
     new_root: H256,
     signature: &[u8],
 ) -> Result<Response, ContractError> {
-    nomad_base::contract::not_failed(deps.as_ref())?;
+    nomad_base::not_failed(deps.as_ref())?;
 
-    if !nomad_base::contract::is_updater_signature(deps.as_ref(), old_root, new_root, signature)? {
+    if !nomad_base::is_updater_signature(deps.as_ref(), old_root, new_root, signature)? {
         return Err(ContractError::NotUpdaterSignature);
     }
 
-    let committed_root = nomad_base::contract::query_committed_root(deps.as_ref())?.committed_root;
+    let committed_root = nomad_base::query_committed_root(deps.as_ref())?.committed_root;
     if old_root != committed_root {
         return Err(ContractError::NotCurrentCommittedRoot { old_root });
     }
 
-    if !queue::contract::query_contains(deps.as_ref(), new_root)?.contains {
+    if !queue::query_contains(deps.as_ref(), new_root)?.contains {
         _fail(deps, info)?;
         return Ok(Response::new().set_data(to_binary(&true)?).add_event(
             Event::new("ImproperUpdate")
@@ -234,7 +234,7 @@ pub fn try_set_updater(
     updater: String,
 ) -> Result<Response, ContractError> {
     only_updater_manager(deps.as_ref(), info.clone())?;
-    Ok(nomad_base::contract::_set_updater(deps, updater)?)
+    Ok(nomad_base::_set_updater(deps, updater)?)
 }
 
 pub fn try_set_updater_manager(
@@ -242,7 +242,7 @@ pub fn try_set_updater_manager(
     info: MessageInfo,
     updater_manager: String,
 ) -> Result<Response, ContractError> {
-    ownable::contract::only_owner(deps.as_ref(), info)?;
+    ownable::only_owner(deps.as_ref(), info)?;
     let updater_manager_addr = deps.api.addr_validate(&updater_manager)?;
 
     UPDATER_MANAGER.save(deps.storage, &updater_manager_addr)?;
@@ -253,7 +253,7 @@ pub fn try_set_updater_manager(
 }
 
 fn _fail(mut deps: DepsMut, info: MessageInfo) -> Result<Response, nomad_base::ContractError> {
-    nomad_base::contract::_set_failed(deps.branch())?;
+    nomad_base::_set_failed(deps.branch())?;
 
     let slash_updater_msg = updater_manager::msg::ExecuteMsg::SlashUpdater {
         reporter: info.sender.to_string(),
@@ -296,22 +296,22 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::Nonces { domain } => to_binary(&query_nonces(deps, domain)?),
         QueryMsg::SuggestUpdate {} => to_binary(&query_suggest_update(deps)?),
         QueryMsg::UpdaterManager {} => to_binary(&query_updater_manager(deps)?),
-        QueryMsg::State {} => to_binary(&nomad_base::contract::query_state(deps)?),
-        QueryMsg::CommittedRoot {} => to_binary(&nomad_base::contract::query_committed_root(deps)?),
+        QueryMsg::State {} => to_binary(&nomad_base::query_state(deps)?),
+        QueryMsg::CommittedRoot {} => to_binary(&nomad_base::query_committed_root(deps)?),
         QueryMsg::HomeDomainHash {} => {
-            to_binary(&nomad_base::contract::query_home_domain_hash(deps)?)
+            to_binary(&nomad_base::query_home_domain_hash(deps)?)
         }
-        QueryMsg::LocalDomain {} => to_binary(&nomad_base::contract::query_local_domain(deps)?),
-        QueryMsg::Updater {} => to_binary(&nomad_base::contract::query_updater(deps)?),
-        QueryMsg::Count {} => to_binary(&merkle::contract::query_count(deps)?),
-        QueryMsg::Root {} => to_binary(&merkle::contract::query_root(deps)?),
-        QueryMsg::Tree {} => to_binary(&merkle::contract::query_tree(deps)?),
+        QueryMsg::LocalDomain {} => to_binary(&nomad_base::query_local_domain(deps)?),
+        QueryMsg::Updater {} => to_binary(&nomad_base::query_updater(deps)?),
+        QueryMsg::Count {} => to_binary(&merkle::query_count(deps)?),
+        QueryMsg::Root {} => to_binary(&merkle::query_root(deps)?),
+        QueryMsg::Tree {} => to_binary(&merkle::query_tree(deps)?),
         QueryMsg::QueueContains { item } => {
-            to_binary(&queue::contract::query_contains(deps, item)?)
+            to_binary(&queue::query_contains(deps, item)?)
         }
-        QueryMsg::QueueEnd {} => to_binary(&queue::contract::query_last_item(deps)?),
-        QueryMsg::QueueLength {} => to_binary(&queue::contract::query_length(deps)?),
-        QueryMsg::Owner {} => to_binary(&ownable::contract::query_owner(deps)?),
+        QueryMsg::QueueEnd {} => to_binary(&queue::query_last_item(deps)?),
+        QueryMsg::QueueLength {} => to_binary(&queue::query_length(deps)?),
+        QueryMsg::Owner {} => to_binary(&ownable::query_owner(deps)?),
     }
 }
 
@@ -322,8 +322,8 @@ pub fn query_nonces(deps: Deps, domain: u32) -> StdResult<NoncesResponse> {
 }
 
 pub fn query_suggest_update(deps: Deps) -> StdResult<SuggestUpdateResponse> {
-    let committed_root = nomad_base::contract::query_committed_root(deps)?.committed_root;
-    let new_root = queue::contract::query_last_item(deps)?.item;
+    let committed_root = nomad_base::query_committed_root(deps)?.committed_root;
+    let new_root = queue::query_last_item(deps)?.item;
     Ok(SuggestUpdateResponse {
         committed_root,
         new_root,
