@@ -292,7 +292,6 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::MessageStatus { leaf } => to_binary(&query_message_status(deps, leaf)?),
         QueryMsg::OptimisticSeconds {} => {
             let opt = query_optimistic_seconds(deps)?;
-            println!("{:?}", opt);
             return to_binary(&opt);
         }
         QueryMsg::RemoteDomain {} => to_binary(&query_remote_domain(deps)?),
@@ -384,7 +383,6 @@ mod tests {
 
         // Optimistic seconds
         let res = query(deps.as_ref(), mock_env(), QueryMsg::OptimisticSeconds {}).unwrap();
-        println!("{:?}", from_binary::<OptimisticSecondsResponse>(&res));
         let value: OptimisticSecondsResponse = from_binary(&res).unwrap();
         assert_eq!(optimistic_seconds, value.optimistic_seconds);
 

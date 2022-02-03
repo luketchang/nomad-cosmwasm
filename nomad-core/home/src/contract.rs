@@ -964,7 +964,7 @@ mod tests {
         assert!(fail_res.is_err());
 
         // Set updater as owner
-        let success_res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+        let _success_res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
 
         // Check updater manager address different
         let res = query(deps.as_ref(), mock_env(), QueryMsg::UpdaterManager {}).unwrap();

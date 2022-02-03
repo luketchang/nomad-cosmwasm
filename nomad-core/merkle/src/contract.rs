@@ -43,7 +43,7 @@ pub fn try_insert(deps: DepsMut, element: H256) -> Result<Response, ContractErro
     let mut merkle = MERKLE.load(deps.storage)?;
     merkle.ingest(element);
     MERKLE.save(deps.storage, &merkle)?;
-    Ok(Response::new().add_attribute("element", element.to_string()))
+    Ok(Response::new().add_attribute("element", format!("{:?}", element)))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
