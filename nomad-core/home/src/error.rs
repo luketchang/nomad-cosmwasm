@@ -8,7 +8,7 @@ pub enum ContractError {
     Std(#[from] StdError),
 
     #[error("Message length {length} too long")]
-    MsgTooLong { length: u128 },
+    MsgTooLong { length: u64 },
 
     #[error("Not a current committed root: {old_root}")]
     NotCurrentCommittedRoot { old_root: H256 },

@@ -41,6 +41,7 @@ tokio = { version = "1.0.1", features = ["rt", "macros"] }
 
 ownable = { path = "../ownable", features = ["library"] }
 nomad-base = { path = "../nomad-base", features = ["library"] }
+merkle = { path = "../merkle", features = ["library"] }
 test-utils = { path = "../test-utils" }
 lib = { path = "../lib" }
 

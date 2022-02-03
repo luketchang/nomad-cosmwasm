@@ -67,7 +67,7 @@ pub fn try_enqueue_batch(deps: DepsMut, items: Vec<H256>) -> Result<Response, Co
     Ok(Response::new().add_attribute("action", "enqueue_batch"))
 }
 
-pub fn try_dequeue_batch(deps: DepsMut, number: u128) -> Result<Response, ContractError> {
+pub fn try_dequeue_batch(deps: DepsMut, number: u64) -> Result<Response, ContractError> {
     let mut queue = QUEUE.load(deps.storage)?;
     let drained: Vec<H256> = queue.drain(0..(number as usize)).collect();
     QUEUE.save(deps.storage, &queue)?;

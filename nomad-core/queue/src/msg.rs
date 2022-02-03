@@ -10,7 +10,7 @@ pub enum ExecuteMsg {
     Enqueue { item: H256 },
     Dequeue {},
     EnqueueBatch { items: Vec<H256> },
-    DequeueBatch { number: u128 },
+    DequeueBatch { number: u64 },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

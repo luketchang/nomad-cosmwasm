@@ -19,7 +19,7 @@ const CONTRACT_NAME: &str = "crates.io:home";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const SLASH_UPDATER_ID: u64 = 1;
-const MAX_MESSAGE_BODY_BYTES: u128 = 2 * u128::pow(2, 10);
+const MAX_MESSAGE_BODY_BYTES: u64 = 2 * u64::pow(2, 10);
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -28,7 +28,6 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    ownable::contract::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
     queue::contract::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
     merkle::contract::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
     nomad_base::contract::instantiate(
@@ -114,7 +113,7 @@ pub fn try_dispatch(
 ) -> Result<Response, ContractError> {
     nomad_base::contract::not_failed(deps.as_ref())?;
 
-    let length = message.len() as u128;
+    let length = message.len() as u64;
     if length > MAX_MESSAGE_BODY_BYTES {
         return Err(ContractError::MsgTooLong { length });
     }
@@ -940,5 +939,38 @@ mod tests {
         let res = query(deps.as_ref(), mock_env(), QueryMsg::State {}).unwrap();
         let state = from_binary::<StateResponse>(&res).unwrap().state;
         assert_eq!(2, state);
+    }
+
+    #[test]
+    fn only_owner_sets_updater_manager() {
+        let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
+
+        let init_msg = InstantiateMsg {
+            local_domain: LOCAL_DOMAIN,
+            updater: UPDATER_PUBKEY.to_owned(),
+        };
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        let msg = ExecuteMsg::SetUpdaterManager {
+            updater_manager: "new_updater_manager".to_owned(),
+        };
+
+        // Try setting updater as non-owner
+        let non_owner_info = mock_info("non_owner", &coins(100, "earth"));
+        let fail_res = execute(deps.as_mut(), mock_env(), non_owner_info, msg.clone());
+        assert!(fail_res.is_err());
+
+        // Set updater as owner
+        let success_res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Check updater manager address different
+        let res = query(deps.as_ref(), mock_env(), QueryMsg::UpdaterManager {}).unwrap();
+        let updater_manager = from_binary::<UpdaterManagerResponse>(&res)
+            .unwrap()
+            .updater_manager;
+        assert_eq!("new_updater_manager".to_owned(), updater_manager);
     }
 }

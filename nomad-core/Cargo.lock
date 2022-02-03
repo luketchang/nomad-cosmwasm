@@ -1259,6 +1259,7 @@ dependencies = [
  "cw2",
  "ethers-core",
  "lib",
+ "merkle",
  "nomad-base",
  "ownable",
  "schemars",

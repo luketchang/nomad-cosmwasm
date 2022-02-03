@@ -5,4 +5,10 @@ use thiserror::Error;
 pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
+
+    #[error("{0}")]
+    OwnableError(#[from] ownable::ContractError),
+
+    #[error("{0}")]
+    NomadBaseError(#[from] nomad_base::ContractError),
 }
