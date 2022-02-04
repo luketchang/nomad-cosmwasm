@@ -282,6 +282,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-std",
+ "ethers-core",
+ "ethers-signers",
+ "schemars",
+ "serde",
+ "sha3 0.10.0",
+ "thiserror",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -856,6 +869,7 @@ dependencies = [
 name = "home"
 version = "0.1.0"
 dependencies = [
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -863,9 +877,7 @@ dependencies = [
  "cw2",
  "ethers-core",
  "ethers-signers",
- "lib",
  "merkle",
- "msg",
  "nomad-base",
  "ownable",
  "queue",
@@ -957,19 +969,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
-name = "lib"
-version = "0.1.0"
-dependencies = [
- "cosmwasm-std",
- "ethers-core",
- "ethers-signers",
- "schemars",
- "serde",
- "sha3 0.10.0",
- "thiserror",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.116"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -988,6 +987,7 @@ dependencies = [
 name = "merkle"
 version = "0.1.0"
 dependencies = [
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -996,21 +996,6 @@ dependencies = [
  "ethers-core",
  "getrandom 0.2.4",
  "lazy_static",
- "msg",
- "schemars",
- "serde",
- "sha3 0.10.0",
- "thiserror",
-]
-
-[[package]]
-name = "msg"
-version = "0.1.0"
-dependencies = [
- "cosmwasm-std",
- "ethers-core",
- "ethers-signers",
- "lib",
  "schemars",
  "serde",
  "sha3 0.10.0",
@@ -1021,6 +1006,7 @@ dependencies = [
 name = "nomad-base"
 version = "0.1.0"
 dependencies = [
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -1028,8 +1014,6 @@ dependencies = [
  "cw2",
  "ethers-core",
  "ethers-signers",
- "lib",
- "msg",
  "ownable",
  "schemars",
  "serde",
@@ -1061,12 +1045,12 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 name = "ownable"
 version = "0.1.0"
 dependencies = [
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
  "cw-storage-plus",
  "cw2",
- "msg",
  "schemars",
  "serde",
  "thiserror",
@@ -1186,13 +1170,13 @@ dependencies = [
 name = "queue"
 version = "0.1.0"
 dependencies = [
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
  "cw-storage-plus",
  "cw2",
  "ethers-core",
- "msg",
  "schemars",
  "serde",
  "thiserror",
@@ -1272,15 +1256,14 @@ dependencies = [
 name = "replica"
 version = "0.1.0"
 dependencies = [
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
  "cw-storage-plus",
  "cw2",
  "ethers-core",
- "lib",
  "merkle",
- "msg",
  "nomad-base",
  "ownable",
  "schemars",
@@ -1637,12 +1620,12 @@ checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
 name = "updater-manager"
 version = "0.1.0"
 dependencies = [
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
  "cw-storage-plus",
  "cw2",
- "msg",
  "ownable",
  "schemars",
  "serde",

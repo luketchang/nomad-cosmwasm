@@ -38,7 +38,7 @@ serde = { version = "1.0", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0" }
 ethers-core = "0.6.2"
 
-msg = { path = "../../msg" }
+common = { path = "../../common" }
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta" }

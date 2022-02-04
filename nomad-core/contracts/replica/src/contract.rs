@@ -1,3 +1,4 @@
+use common::{bytes32_to_addr, Decode, HandleMsg, MessageStatus, NomadMessage};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -6,11 +7,10 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use ethers_core::types::H256;
-use lib::{bytes32_to_addr, Decode, HandleMsg, MessageStatus, NomadMessage};
 
 use crate::error::ContractError;
 use crate::state::{CONFIRM_AT, MESSAGES, OPTIMISTIC_SECONDS, REMOTE_DOMAIN};
-use msg::replica::{
+use common::replica::{
     AcceptableRootResponse, ConfirmAtResponse, ExecuteMsg, InstantiateMsg, MessageStatusResponse,
     OptimisticSecondsResponse, QueryMsg, RemoteDomainResponse,
 };
@@ -343,10 +343,10 @@ pub fn query_remote_domain(deps: Deps) -> StdResult<RemoteDomainResponse> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use common::nomad_base::{LocalDomainResponse, StateResponse, UpdaterResponse};
+    use common::States;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
-    use lib::States;
-    use msg::nomad_base::{LocalDomainResponse, StateResponse, UpdaterResponse};
 
     const LOCAL_DOMAIN: u32 = 2000;
     const REMOTE_DOMAIN: u32 = 1000;

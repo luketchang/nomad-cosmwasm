@@ -3,7 +3,7 @@
 
 // use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-// use ownable::msg::{ExecuteMsg, InstantiateMsg, OwnerResponse, QueryMsg};
+// use ownable::common::{ExecuteMsg, InstantiateMsg, OwnerResponse, QueryMsg};
 // use ownable::state::State;
 
 fn main() {

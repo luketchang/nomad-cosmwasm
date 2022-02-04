@@ -2,7 +2,7 @@ use crate::nomad_base;
 use ethers_core::types::H256;
 use serde::{Deserialize, Serialize};
 
-use lib::MessageStatus;
+use crate::MessageStatus;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InstantiateMsg {

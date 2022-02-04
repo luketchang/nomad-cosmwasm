@@ -3,8 +3,7 @@ cargo-features = ["edition2021"]
 [workspace]
 
 members = [
-    "lib",
-    "msg",
+    "common",
     "test-utils",
     "contracts/home",
     "contracts/replica",

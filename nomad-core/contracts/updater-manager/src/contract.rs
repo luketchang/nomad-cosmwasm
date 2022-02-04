@@ -7,7 +7,7 @@ use cw2::set_contract_version;
 
 use crate::error::ContractError;
 use crate::state::{HOME, UPDATER};
-use msg::updater_manager::{ExecuteMsg, InstantiateMsg, QueryMsg, UpdaterResponse};
+use common::updater_manager::{ExecuteMsg, InstantiateMsg, QueryMsg, UpdaterResponse};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:updater-manager";
@@ -26,7 +26,7 @@ pub fn instantiate(
         deps.branch(),
         env.clone(),
         info.clone(),
-        msg::ownable::InstantiateMsg {},
+        common::ownable::InstantiateMsg {},
     )?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -138,7 +138,7 @@ mod tests {
 
         // Owner
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();
-        let value: msg::ownable::OwnerResponse = from_binary(&res).unwrap();
+        let value: common::ownable::OwnerResponse = from_binary(&res).unwrap();
         assert_eq!("owner", value.owner);
 
         // Set home

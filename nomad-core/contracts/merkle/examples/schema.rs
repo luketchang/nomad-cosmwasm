@@ -5,7 +5,7 @@
 
 // use merkle::{
 //     merkle_tree::IncrementalMerkle,
-//     msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
+//     common::{ExecuteMsg, InstantiateMsg, QueryMsg},
 // };
 
 fn main() {

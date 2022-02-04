@@ -5,7 +5,7 @@ use cw2::set_contract_version;
 
 use crate::error::ContractError;
 use crate::state::OWNER;
-use msg::ownable::{ExecuteMsg, InstantiateMsg, OwnerResponse, QueryMsg};
+use common::ownable::{ExecuteMsg, InstantiateMsg, OwnerResponse, QueryMsg};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:ownable";

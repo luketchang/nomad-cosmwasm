@@ -3,7 +3,7 @@
 
 // use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-// use queue::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+// use queue::common::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 fn main() {
     //     let mut out_dir = current_dir().unwrap();

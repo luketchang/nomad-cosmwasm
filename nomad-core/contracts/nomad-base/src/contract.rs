@@ -1,3 +1,4 @@
+use common::States;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -5,13 +6,12 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use ethers_core::types::{RecoveryMessage, Signature, H160, H256};
-use lib::States;
 use sha3::{digest::Update, Digest, Keccak256};
 use std::{convert::TryFrom, str::FromStr};
 
 use crate::error::ContractError;
 use crate::state::{COMMITTED_ROOT, LOCAL_DOMAIN, STATE, UPDATER};
-use msg::nomad_base::{
+use common::nomad_base::{
     CommittedRootResponse, ExecuteMsg, HomeDomainHashResponse, InstantiateMsg, LocalDomainResponse,
     QueryMsg, StateResponse, UpdaterResponse,
 };
@@ -184,9 +184,9 @@ pub fn query_updater(deps: Deps) -> StdResult<UpdaterResponse> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use common::ownable::OwnerResponse;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
-    use msg::ownable::OwnerResponse;
     use test_utils::Updater;
 
     const LOCAL_DOMAIN: u32 = 1000;

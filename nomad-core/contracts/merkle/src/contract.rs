@@ -7,7 +7,7 @@ use ethers_core::types::H256;
 use crate::error::ContractError;
 use crate::merkle_tree::IncrementalMerkle;
 use crate::state::MERKLE;
-use msg::merkle::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RootResponse};
+use common::merkle::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RootResponse};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:merkle";

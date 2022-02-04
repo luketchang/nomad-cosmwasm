@@ -1,3 +1,4 @@
+use common::{addr_to_bytes32, destination_and_nonce, Encode, NomadMessage};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -6,11 +7,10 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use ethers_core::types::H256;
-use lib::{addr_to_bytes32, destination_and_nonce, Encode, NomadMessage};
 
 use crate::error::ContractError;
 use crate::state::{NONCES, UPDATER_MANAGER};
-use msg::home::{
+use common::home::{
     ExecuteMsg, InstantiateMsg, NoncesResponse, QueryMsg, SuggestUpdateResponse,
     UpdaterManagerResponse,
 };
@@ -248,7 +248,7 @@ pub fn try_set_updater_manager(
 fn _fail(mut deps: DepsMut, info: MessageInfo) -> Result<Response, nomad_base::ContractError> {
     nomad_base::_set_failed(deps.branch())?;
 
-    let slash_updater_msg = msg::updater_manager::ExecuteMsg::SlashUpdater {
+    let slash_updater_msg = common::updater_manager::ExecuteMsg::SlashUpdater {
         reporter: info.sender.to_string(),
     };
     let wasm_msg = WasmMsg::Execute {
@@ -329,15 +329,15 @@ pub fn query_updater_manager(deps: Deps) -> StdResult<UpdaterManagerResponse> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
-    use cosmwasm_std::{coins, from_binary};
-    use lib::States;
-    use merkle::merkle_tree::INITIAL_ROOT;
-    use msg::merkle::RootResponse;
-    use msg::nomad_base::{
+    use common::merkle::RootResponse;
+    use common::nomad_base::{
         CommittedRootResponse, LocalDomainResponse, StateResponse, UpdaterResponse,
     };
-    use msg::queue::{EndResponse as QueueEndResponse, LengthResponse as QueueLengthResponse};
+    use common::queue::{EndResponse as QueueEndResponse, LengthResponse as QueueLengthResponse};
+    use common::States;
+    use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
+    use cosmwasm_std::{coins, from_binary};
+    use merkle::merkle_tree::INITIAL_ROOT;
     use test_utils::Updater;
     use test_utils::{event_attr_value_by_key, h256_to_string};
 

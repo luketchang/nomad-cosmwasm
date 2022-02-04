@@ -2,7 +2,7 @@ use crate::ownable;
 use ethers_core::types::H256;
 use serde::{Deserialize, Serialize};
 
-use lib::States;
+use crate::States;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InstantiateMsg {

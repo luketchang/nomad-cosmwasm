@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 mod message;
 pub use message::*;
 
+mod contract_msg;
+pub use contract_msg::*;
+
 mod utils;
 pub use utils::*;
 
