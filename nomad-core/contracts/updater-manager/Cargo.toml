@@ -1,5 +1,5 @@
 [package]
-name = "home"
+name = "updater-manager"
 version = "0.1.0"
 authors = ["Luke Tchang <ltchang@stanford.edu>"]
 edition = "2018"
@@ -36,19 +36,9 @@ cw2 = "0.11"
 schemars = "0.8"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0" }
-sha3 = "0.10.0"
-ethers-signers = "0.6.2"
-ethers-core = "0.6.2"
-tokio = { version = "1.0.1", features = ["rt", "macros"] }
 
 ownable = { path = "../ownable", features = ["library"] }
-updater-manager = { path = "../updater-manager" }
-nomad-base = { path = "../nomad-base", features = ["library"] }
-merkle = { path = "../merkle", features = ["library"] }
-queue = { path = "../queue", features = ["library"] }
-test-utils = { path = "../test-utils" }
-lib = { path = "../lib" }
-msg = { path = "../msg" }
+msg = { path = "../../msg" }
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta" }

@@ -3,14 +3,14 @@ cargo-features = ["edition2021"]
 [workspace]
 
 members = [
-    "home",
-    "replica",
-    "updater-manager",
-    "nomad-base",
-    "ownable",
-    "queue",
-    "merkle",
     "lib",
     "msg",
     "test-utils",
+    "contracts/home",
+    "contracts/replica",
+    "contracts/updater-manager",
+    "contracts/nomad-base",
+    "contracts/ownable",
+    "contracts/queue",
+    "contracts/merkle",
 ]
