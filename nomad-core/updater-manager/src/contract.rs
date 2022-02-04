@@ -6,8 +6,8 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, UpdaterResponse};
 use crate::state::{HOME, UPDATER};
+use msg::updater_manager::{ExecuteMsg, InstantiateMsg, QueryMsg, UpdaterResponse};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:updater-manager";
@@ -26,7 +26,7 @@ pub fn instantiate(
         deps.branch(),
         env.clone(),
         info.clone(),
-        ownable::msg::InstantiateMsg {},
+        msg::ownable::InstantiateMsg {},
     )?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -55,12 +55,10 @@ pub fn execute(
         ExecuteMsg::SetHome { home } => try_set_home(deps, info, home),
         ExecuteMsg::SetUpdater { updater } => try_set_updater(deps, info, updater),
         ExecuteMsg::SlashUpdater { reporter } => try_slash_updater(deps, info, reporter),
-        ExecuteMsg::RenounceOwnership {} => {
-            Ok(ownable::try_renounce_ownership(deps, info)?)
+        ExecuteMsg::RenounceOwnership {} => Ok(ownable::try_renounce_ownership(deps, info)?),
+        ExecuteMsg::TransferOwnership { new_owner } => {
+            Ok(ownable::try_transfer_ownership(deps, info, new_owner)?)
         }
-        ExecuteMsg::TransferOwnership { new_owner } => Ok(
-            ownable::try_transfer_ownership(deps, info, new_owner)?,
-        ),
     }
 }
 
@@ -140,7 +138,7 @@ mod tests {
 
         // Owner
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();
-        let value: ownable::msg::OwnerResponse = from_binary(&res).unwrap();
+        let value: msg::ownable::OwnerResponse = from_binary(&res).unwrap();
         assert_eq!("owner", value.owner);
 
         // Set home

@@ -5,15 +5,16 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use ethers_core::types::{RecoveryMessage, Signature, H160, H256};
+use lib::States;
 use sha3::{digest::Update, Digest, Keccak256};
 use std::{convert::TryFrom, str::FromStr};
 
 use crate::error::ContractError;
-use crate::msg::{
+use crate::state::{COMMITTED_ROOT, LOCAL_DOMAIN, STATE, UPDATER};
+use msg::nomad_base::{
     CommittedRootResponse, ExecuteMsg, HomeDomainHashResponse, InstantiateMsg, LocalDomainResponse,
     QueryMsg, StateResponse, UpdaterResponse,
 };
-use crate::state::{States, LOCAL_DOMAIN, UPDATER, STATE, COMMITTED_ROOT};
 use ownable::{
     instantiate as ownable_instantiate, query_owner, try_renounce_ownership, try_transfer_ownership,
 };
@@ -152,9 +153,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 
 pub fn query_committed_root(deps: Deps) -> StdResult<CommittedRootResponse> {
     let committed_root = COMMITTED_ROOT.load(deps.storage)?;
-    Ok(CommittedRootResponse {
-        committed_root,
-    })
+    Ok(CommittedRootResponse { committed_root })
 }
 
 pub fn query_home_domain_hash(deps: Deps) -> StdResult<HomeDomainHashResponse> {
@@ -190,7 +189,7 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
-    use ownable::msg::OwnerResponse;
+    use msg::ownable::OwnerResponse;
     use test_utils::Updater;
 
     const LOCAL_DOMAIN: u32 = 1000;

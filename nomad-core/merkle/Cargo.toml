@@ -41,5 +41,7 @@ getrandom = { version = "0.2", features = ["js"] }
 sha3 = "0.10.0"
 ethers-core = "0.6.2"
 
+msg = { path = "../msg" }
+
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta" }

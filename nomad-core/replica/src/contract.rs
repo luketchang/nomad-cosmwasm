@@ -6,14 +6,14 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use ethers_core::types::H256;
-use lib::{bytes32_to_addr, Decode, HandleMsg, NomadMessage};
+use lib::{bytes32_to_addr, Decode, HandleMsg, MessageStatus, NomadMessage};
 
 use crate::error::ContractError;
-use crate::msg::{
+use crate::state::{CONFIRM_AT, MESSAGES, OPTIMISTIC_SECONDS, REMOTE_DOMAIN};
+use msg::replica::{
     AcceptableRootResponse, ConfirmAtResponse, ExecuteMsg, InstantiateMsg, MessageStatusResponse,
     OptimisticSecondsResponse, QueryMsg, RemoteDomainResponse,
 };
-use crate::state::{MessageStatus, CONFIRM_AT, MESSAGES, OPTIMISTIC_SECONDS, REMOTE_DOMAIN};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:replica";
@@ -79,12 +79,10 @@ pub fn execute(
             try_set_optimistic_timeout(deps, info, optimistic_seconds)
         }
         ExecuteMsg::SetUpdater { updater } => try_set_updater(deps, info, updater),
-        ExecuteMsg::RenounceOwnership {} => {
-            Ok(ownable::try_renounce_ownership(deps, info)?)
+        ExecuteMsg::RenounceOwnership {} => Ok(ownable::try_renounce_ownership(deps, info)?),
+        ExecuteMsg::TransferOwnership { new_owner } => {
+            Ok(ownable::try_transfer_ownership(deps, info, new_owner)?)
         }
-        ExecuteMsg::TransferOwnership { new_owner } => Ok(
-            ownable::try_transfer_ownership(deps, info, new_owner)?,
-        ),
     }
 }
 
@@ -176,9 +174,7 @@ pub fn try_process(
 
     MESSAGES.save(deps.storage, leaf.as_bytes(), &MessageStatus::Processed)?;
 
-    // TODO: don't need gas limit check due to submessage lifecycle?
-    // Once we set message status to processed, even if submessage reverts,
-    // state persists. We can overwite the return value though with reply ret.
+    // TODO: check gas limit to ensure rest of tx doesn't fail for gas
 
     let handle_msg: HandleMsg = nomad_message.clone().into();
     let wasm_msg = WasmMsg::Execute {
@@ -296,9 +292,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::RemoteDomain {} => to_binary(&query_remote_domain(deps)?),
         QueryMsg::CommittedRoot {} => to_binary(&nomad_base::query_committed_root(deps)?),
-        QueryMsg::HomeDomainHash {} => {
-            to_binary(&nomad_base::query_home_domain_hash(deps)?)
-        }
+        QueryMsg::HomeDomainHash {} => to_binary(&nomad_base::query_home_domain_hash(deps)?),
         QueryMsg::LocalDomain {} => to_binary(&nomad_base::query_local_domain(deps)?),
         QueryMsg::State {} => to_binary(&nomad_base::query_state(deps)?),
         QueryMsg::Updater {} => to_binary(&nomad_base::query_updater(deps)?),
@@ -351,8 +345,8 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
-    use nomad_base::msg::{LocalDomainResponse, StateResponse, UpdaterResponse};
-    use nomad_base::state::States;
+    use lib::States;
+    use msg::nomad_base::{LocalDomainResponse, StateResponse, UpdaterResponse};
 
     const LOCAL_DOMAIN: u32 = 2000;
     const REMOTE_DOMAIN: u32 = 1000;

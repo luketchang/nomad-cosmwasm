@@ -1,7 +1,8 @@
+use crate::ownable;
 use ethers_core::types::H256;
 use serde::{Deserialize, Serialize};
 
-use crate::state::States;
+use lib::States;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InstantiateMsg {
@@ -9,9 +10,9 @@ pub struct InstantiateMsg {
     pub updater: String,
 }
 
-impl From<InstantiateMsg> for ownable::msg::InstantiateMsg {
+impl From<InstantiateMsg> for ownable::InstantiateMsg {
     fn from(_: InstantiateMsg) -> Self {
-        ownable::msg::InstantiateMsg {}
+        ownable::InstantiateMsg {}
     }
 }
 

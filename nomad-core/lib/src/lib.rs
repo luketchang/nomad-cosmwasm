@@ -1,5 +1,6 @@
 use cosmwasm_std::{Addr, CanonicalAddr, Deps};
 use ethers_core::types::{SignatureError, H256};
+use serde::{Deserialize, Serialize};
 use std::io::Write;
 
 mod message;
@@ -7,6 +8,26 @@ pub use message::*;
 
 mod traits;
 pub use traits::*;
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum States {
+    UnInitialized,
+    Active,
+    Failed,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum MessageStatus {
+    None,
+    Proven,
+    Processed,
+}
+
+impl Default for MessageStatus {
+    fn default() -> Self {
+        Self::None
+    }
+}
 
 /// Error types for Nomad
 #[derive(Debug, thiserror::Error)]

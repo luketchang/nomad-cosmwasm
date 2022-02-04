@@ -6,8 +6,8 @@ use ethers_core::types::H256;
 
 use crate::error::ContractError;
 use crate::merkle_tree::IncrementalMerkle;
-use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RootResponse, TreeResponse};
 use crate::state::MERKLE;
+use msg::merkle::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RootResponse};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:merkle";
@@ -51,7 +51,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Root {} => to_binary(&query_root(deps)?),
         QueryMsg::Count {} => to_binary(&query_count(deps)?),
-        QueryMsg::Tree {} => to_binary(&query_tree(deps)?),
+        // QueryMsg::Tree {} => to_binary(&query_tree(deps)?),
     }
 }
 
@@ -69,10 +69,10 @@ pub fn query_count(deps: Deps) -> StdResult<CountResponse> {
     })
 }
 
-pub fn query_tree(deps: Deps) -> StdResult<TreeResponse> {
-    let tree = MERKLE.load(deps.storage)?;
-    Ok(TreeResponse { tree })
-}
+// pub fn query_tree(deps: Deps) -> StdResult<TreeResponse> {
+//     let tree = MERKLE.load(deps.storage)?;
+//     Ok(TreeResponse { tree })
+// }
 
 #[cfg(test)]
 mod tests {

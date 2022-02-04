@@ -38,6 +38,7 @@ serde = { version = "1.0", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0" }
 
 ownable = { path = "../ownable", features = ["library"] }
+msg = { path = "../msg" }
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta" }

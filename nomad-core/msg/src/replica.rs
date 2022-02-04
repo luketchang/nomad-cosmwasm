@@ -1,7 +1,8 @@
+use crate::nomad_base;
 use ethers_core::types::H256;
 use serde::{Deserialize, Serialize};
 
-use crate::state::MessageStatus;
+use lib::MessageStatus;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InstantiateMsg {
@@ -12,7 +13,7 @@ pub struct InstantiateMsg {
     pub optimistic_seconds: u64,
 }
 
-impl From<InstantiateMsg> for nomad_base::msg::InstantiateMsg {
+impl From<InstantiateMsg> for nomad_base::InstantiateMsg {
     fn from(msg: InstantiateMsg) -> Self {
         Self {
             local_domain: msg.local_domain,

@@ -9,11 +9,11 @@ use ethers_core::types::H256;
 use lib::{addr_to_bytes32, destination_and_nonce, Encode, NomadMessage};
 
 use crate::error::ContractError;
-use crate::msg::{
+use crate::state::{NONCES, UPDATER_MANAGER};
+use msg::home::{
     ExecuteMsg, InstantiateMsg, NoncesResponse, QueryMsg, SuggestUpdateResponse,
     UpdaterManagerResponse,
 };
-use crate::state::{NONCES, UPDATER_MANAGER};
 
 const CONTRACT_NAME: &str = "crates.io:home";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -30,12 +30,7 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     queue::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
     merkle::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
-    nomad_base::instantiate(
-        deps.branch(),
-        env.clone(),
-        info.clone(),
-        msg.clone().into(),
-    )?;
+    nomad_base::instantiate(deps.branch(), env.clone(), info.clone(), msg.clone().into())?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     UPDATER_MANAGER.save(deps.storage, &Addr::unchecked("0x0"))?;
@@ -95,12 +90,10 @@ pub fn execute(
         ExecuteMsg::SetUpdaterManager { updater_manager } => {
             try_set_updater_manager(deps, info, updater_manager)
         }
-        ExecuteMsg::RenounceOwnership {} => {
-            Ok(ownable::try_renounce_ownership(deps, info)?)
+        ExecuteMsg::RenounceOwnership {} => Ok(ownable::try_renounce_ownership(deps, info)?),
+        ExecuteMsg::TransferOwnership { new_owner } => {
+            Ok(ownable::try_transfer_ownership(deps, info, new_owner)?)
         }
-        ExecuteMsg::TransferOwnership { new_owner } => Ok(
-            ownable::try_transfer_ownership(deps, info, new_owner)?,
-        ),
     }
 }
 
@@ -255,7 +248,7 @@ pub fn try_set_updater_manager(
 fn _fail(mut deps: DepsMut, info: MessageInfo) -> Result<Response, nomad_base::ContractError> {
     nomad_base::_set_failed(deps.branch())?;
 
-    let slash_updater_msg = updater_manager::msg::ExecuteMsg::SlashUpdater {
+    let slash_updater_msg = msg::updater_manager::ExecuteMsg::SlashUpdater {
         reporter: info.sender.to_string(),
     };
     let wasm_msg = WasmMsg::Execute {
@@ -298,17 +291,13 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::UpdaterManager {} => to_binary(&query_updater_manager(deps)?),
         QueryMsg::State {} => to_binary(&nomad_base::query_state(deps)?),
         QueryMsg::CommittedRoot {} => to_binary(&nomad_base::query_committed_root(deps)?),
-        QueryMsg::HomeDomainHash {} => {
-            to_binary(&nomad_base::query_home_domain_hash(deps)?)
-        }
+        QueryMsg::HomeDomainHash {} => to_binary(&nomad_base::query_home_domain_hash(deps)?),
         QueryMsg::LocalDomain {} => to_binary(&nomad_base::query_local_domain(deps)?),
         QueryMsg::Updater {} => to_binary(&nomad_base::query_updater(deps)?),
         QueryMsg::Count {} => to_binary(&merkle::query_count(deps)?),
         QueryMsg::Root {} => to_binary(&merkle::query_root(deps)?),
-        QueryMsg::Tree {} => to_binary(&merkle::query_tree(deps)?),
-        QueryMsg::QueueContains { item } => {
-            to_binary(&queue::query_contains(deps, item)?)
-        }
+        // QueryMsg::Tree {} => to_binary(&merkle::query_tree(deps)?),
+        QueryMsg::QueueContains { item } => to_binary(&queue::query_contains(deps, item)?),
         QueryMsg::QueueEnd {} => to_binary(&queue::query_last_item(deps)?),
         QueryMsg::QueueLength {} => to_binary(&queue::query_length(deps)?),
         QueryMsg::Owner {} => to_binary(&ownable::query_owner(deps)?),
@@ -342,15 +331,15 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
+    use lib::States;
     use merkle::merkle_tree::INITIAL_ROOT;
-    use merkle::msg::RootResponse;
-    use nomad_base::msg::{
+    use msg::merkle::RootResponse;
+    use msg::nomad_base::{
         CommittedRootResponse, LocalDomainResponse, StateResponse, UpdaterResponse,
     };
-    use queue::msg::{EndResponse as QueueEndResponse, LengthResponse as QueueLengthResponse};
+    use msg::queue::{EndResponse as QueueEndResponse, LengthResponse as QueueLengthResponse};
     use test_utils::Updater;
     use test_utils::{event_attr_value_by_key, h256_to_string};
-    use nomad_base::state::States;
 
     const LOCAL_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =

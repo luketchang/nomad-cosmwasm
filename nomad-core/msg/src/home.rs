@@ -1,3 +1,4 @@
+use crate::{merkle, nomad_base, ownable, queue};
 use ethers_core::types::H256;
 use serde::{Deserialize, Serialize};
 
@@ -7,27 +8,27 @@ pub struct InstantiateMsg {
     pub updater: String,
 }
 
-impl From<InstantiateMsg> for ownable::msg::InstantiateMsg {
+impl From<InstantiateMsg> for ownable::InstantiateMsg {
     fn from(_: InstantiateMsg) -> Self {
-        ownable::msg::InstantiateMsg {}
+        ownable::InstantiateMsg {}
     }
 }
 
-impl From<InstantiateMsg> for queue::msg::InstantiateMsg {
+impl From<InstantiateMsg> for queue::InstantiateMsg {
     fn from(_: InstantiateMsg) -> Self {
-        queue::msg::InstantiateMsg {}
+        queue::InstantiateMsg {}
     }
 }
 
-impl From<InstantiateMsg> for merkle::msg::InstantiateMsg {
+impl From<InstantiateMsg> for merkle::InstantiateMsg {
     fn from(_: InstantiateMsg) -> Self {
-        merkle::msg::InstantiateMsg {}
+        merkle::InstantiateMsg {}
     }
 }
 
-impl From<InstantiateMsg> for nomad_base::msg::InstantiateMsg {
+impl From<InstantiateMsg> for nomad_base::InstantiateMsg {
     fn from(msg: InstantiateMsg) -> Self {
-        nomad_base::msg::InstantiateMsg {
+        nomad_base::InstantiateMsg {
             local_domain: msg.local_domain,
             updater: msg.updater,
         }
@@ -85,7 +86,7 @@ pub enum QueryMsg {
     Root {},
     State {},
     SuggestUpdate {},
-    Tree {},
+    // Tree {},
     Updater {},
     UpdaterManager {},
 }

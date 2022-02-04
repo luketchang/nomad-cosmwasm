@@ -4,8 +4,8 @@ use cosmwasm_std::{to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Res
 use cw2::set_contract_version;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, OwnerResponse, QueryMsg};
 use crate::state::OWNER;
+use msg::ownable::{ExecuteMsg, InstantiateMsg, OwnerResponse, QueryMsg};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:ownable";

@@ -1,19 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use cw_storage_plus::{Item, Map};
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub enum MessageStatus {
-    None,
-    Proven,
-    Processed,
-}
-
-impl Default for MessageStatus {
-    fn default() -> Self {
-        Self::None
-    }
-}
+use lib::MessageStatus;
 
 pub const REMOTE_DOMAIN: Item<u32> = Item::new("replica_remote_domain");
 pub const OPTIMISTIC_SECONDS: Item<u64> = Item::new("replica_optimistic_seconds");

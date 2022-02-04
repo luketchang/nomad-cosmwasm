@@ -48,6 +48,7 @@ merkle = { path = "../merkle", features = ["library"] }
 queue = { path = "../queue", features = ["library"] }
 test-utils = { path = "../test-utils" }
 lib = { path = "../lib" }
+msg = { path = "../msg" }
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta" }

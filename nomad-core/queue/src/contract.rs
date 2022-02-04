@@ -7,11 +7,11 @@ use cw2::set_contract_version;
 use ethers_core::types::H256;
 
 use crate::error::ContractError;
-use crate::msg::{
+use crate::state::QUEUE;
+use msg::queue::{
     ContainsResponse, EndResponse, ExecuteMsg, FrontResponse, InstantiateMsg, IsEmptyResponse,
     LengthResponse, QueryMsg,
 };
-use crate::state::QUEUE;
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:queue";
