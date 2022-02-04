@@ -15,9 +15,6 @@ use msg::nomad_base::{
     CommittedRootResponse, ExecuteMsg, HomeDomainHashResponse, InstantiateMsg, LocalDomainResponse,
     QueryMsg, StateResponse, UpdaterResponse,
 };
-use ownable::{
-    instantiate as ownable_instantiate, query_owner, try_renounce_ownership, try_transfer_ownership,
-};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:nomad-base";
@@ -30,7 +27,7 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    ownable_instantiate(deps.branch(), env, info, msg.clone().into())?;
+    ownable::instantiate(deps.branch(), env, info, msg.clone().into())?;
 
     let updater = deps.api.addr_validate(&msg.updater)?;
 
@@ -63,9 +60,9 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::RenounceOwnership {} => Ok(try_renounce_ownership(deps, info)?),
+        ExecuteMsg::RenounceOwnership {} => Ok(ownable::try_renounce_ownership(deps, info)?),
         ExecuteMsg::TransferOwnership { new_owner } => {
-            Ok(try_transfer_ownership(deps, info, new_owner)?)
+            Ok(ownable::try_transfer_ownership(deps, info, new_owner)?)
         }
     }
 }
@@ -147,7 +144,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::LocalDomain {} => to_binary(&query_local_domain(deps)?),
         QueryMsg::State {} => to_binary(&query_state(deps)?),
         QueryMsg::Updater {} => to_binary(&query_updater(deps)?),
-        QueryMsg::Owner {} => to_binary(&query_owner(deps)?),
+        QueryMsg::Owner {} => to_binary(&ownable::query_owner(deps)?),
     }
 }
 
