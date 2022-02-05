@@ -121,7 +121,6 @@ pub fn try_slash_updater(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
-    println!("Replying");
     match msg.id {
         SET_UPDATER_ID => reply_set_updater(deps.as_ref(), msg),
         _ => Err(ContractError::UnknownReplyMessage { id: msg.id }),
@@ -129,9 +128,8 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
 }
 
 pub fn reply_set_updater(_deps: Deps, msg: Reply) -> Result<Response, ContractError> {
-    println!("REPLY SET UPDATER");
     match msg.result {
-        ContractResult::Ok(res) => Ok(Response::new().add_events(res.events)),
+        ContractResult::Ok(_) => Ok(Response::new().add_attribute("action", "set_updater")),
         ContractResult::Err(e) => Err(ContractError::FailedSetUpdaterCall(e)),
     }
 }
