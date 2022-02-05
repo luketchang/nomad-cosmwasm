@@ -1,7 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Binary, Deps, DepsMut, Env, Event, MessageInfo, Response, StdResult,
+    to_binary, Binary, ContractResult, CosmosMsg, Deps, DepsMut, Env, Event, MessageInfo, Reply,
+    ReplyOn, Response, StdResult, SubMsg, WasmMsg,
 };
 use cw2::set_contract_version;
 
@@ -12,6 +13,8 @@ use common::updater_manager::{ExecuteMsg, InstantiateMsg, QueryMsg, UpdaterRespo
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:updater-manager";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+pub const SET_UPDATER_ID: u64 = 1;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -82,11 +85,27 @@ pub fn try_set_updater(
 ) -> Result<Response, ContractError> {
     ownable::only_owner(deps.as_ref(), info)?;
 
-    let updater_addr = deps.api.addr_validate(&updater)?;
+    let updater_addr = deps.api.addr_validate(&updater.clone())?;
     UPDATER.save(deps.storage, &updater_addr)?;
 
-    // TODO: submessage call to home to set updater
-    Ok(Response::new().add_event(Event::new("SetUpdater").add_attribute("updater", updater)))
+    let home_addr = HOME.load(deps.storage)?;
+
+    let set_updater_msg = common::home::ExecuteMsg::SetUpdater { updater };
+    let wasm_msg = WasmMsg::Execute {
+        contract_addr: home_addr.to_string(),
+        msg: to_binary(&set_updater_msg)?,
+        funds: vec![],
+    };
+    let cosmos_msg = CosmosMsg::Wasm(wasm_msg);
+
+    let sub_msg = SubMsg {
+        id: SET_UPDATER_ID,
+        msg: cosmos_msg,
+        gas_limit: None,
+        reply_on: ReplyOn::Always,
+    };
+
+    Ok(Response::new().add_submessage(sub_msg))
 }
 
 pub fn try_slash_updater(
@@ -98,6 +117,23 @@ pub fn try_slash_updater(
 
     // TODO: implement updater slashing
     Ok(Response::new().add_event(Event::new("SlashUpdater").add_attribute("reporter", reporter)))
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
+    println!("Replying");
+    match msg.id {
+        SET_UPDATER_ID => reply_set_updater(deps.as_ref(), msg),
+        _ => Err(ContractError::UnknownReplyMessage { id: msg.id }),
+    }
+}
+
+pub fn reply_set_updater(_deps: Deps, msg: Reply) -> Result<Response, ContractError> {
+    println!("REPLY SET UPDATER");
+    match msg.result {
+        ContractResult::Ok(res) => Ok(Response::new().add_events(res.events)),
+        ContractResult::Err(e) => Err(ContractError::FailedSetUpdaterCall(e)),
+    }
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

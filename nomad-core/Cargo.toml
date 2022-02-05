@@ -5,6 +5,7 @@ cargo-features = ["edition2021"]
 members = [
     "common",
     "test-utils",
+    "integration-tests",
     "contracts/home",
     "contracts/replica",
     "contracts/updater-manager",

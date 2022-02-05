@@ -9,6 +9,12 @@ pub enum ContractError {
     #[error("Only the home can call slash")]
     SlashNotHome,
 
+    #[error("Unknown reply message id received: {id}")]
+    UnknownReplyMessage { id: u64 },
+
+    #[error("Failed to call set updater on updater manager: {0}")]
+    FailedSetUpdaterCall(String),
+
     #[error("{0}")]
     OwnableError(#[from] ownable::ContractError),
 }
