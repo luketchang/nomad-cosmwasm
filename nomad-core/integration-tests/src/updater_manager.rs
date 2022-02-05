@@ -48,8 +48,11 @@ fn updater_manager_calls_home_set_updater() {
     let set_updater_msg = updater_manager::ExecuteMsg::SetUpdater {
         updater: new_updater.to_string(),
     };
-    app.execute_contract(owner, updater_manager_addr.clone(), &set_updater_msg, &[])
+    let res = app
+        .execute_contract(owner, updater_manager_addr.clone(), &set_updater_msg, &[])
         .unwrap();
+
+    println!("{:?}", res);
 
     // Check updater manager updater is new_updater
     let updater_manager_updater_res: updater_manager::UpdaterResponse = app

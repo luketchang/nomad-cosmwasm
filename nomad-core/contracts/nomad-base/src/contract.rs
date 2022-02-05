@@ -127,7 +127,7 @@ pub fn _set_updater(deps: DepsMut, updater: String) -> Result<Response, Contract
     let updater_addr = deps.api.addr_validate(&updater)?;
     UPDATER.save(deps.storage, &updater_addr)?;
 
-    Ok(Response::new())
+    Ok(Response::new().add_event(Event::new("SetUpdater").add_attribute("new_updater", updater)))
 }
 
 pub fn _set_committed_root(deps: DepsMut, root: H256) -> Result<Response, ContractError> {

@@ -90,7 +90,9 @@ pub fn try_set_updater(
 
     let home_addr = HOME.load(deps.storage)?;
 
-    let set_updater_msg = common::home::ExecuteMsg::SetUpdater { updater };
+    let set_updater_msg = common::home::ExecuteMsg::SetUpdater {
+        updater: updater.clone(),
+    };
     let wasm_msg = WasmMsg::Execute {
         contract_addr: home_addr.to_string(),
         msg: to_binary(&set_updater_msg)?,
@@ -105,7 +107,9 @@ pub fn try_set_updater(
         reply_on: ReplyOn::Always,
     };
 
-    Ok(Response::new().add_submessage(sub_msg))
+    Ok(Response::new()
+        .add_event(Event::new("SetUpdater").add_attribute("new_updater", updater))
+        .add_submessage(sub_msg))
 }
 
 pub fn try_slash_updater(
@@ -129,7 +133,7 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractE
 
 pub fn reply_set_updater(_deps: Deps, msg: Reply) -> Result<Response, ContractError> {
     match msg.result {
-        ContractResult::Ok(_) => Ok(Response::new().add_attribute("action", "set_updater")),
+        ContractResult::Ok(_) => Ok(Response::new()),
         ContractResult::Err(e) => Err(ContractError::FailedSetUpdaterCall(e)),
     }
 }

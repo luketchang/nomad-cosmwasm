@@ -209,13 +209,16 @@ pub fn try_improper_update(
     }
 
     if !queue::query_contains(deps.as_ref(), new_root)?.contains {
-        _fail(deps, info)?;
-        return Ok(Response::new().set_data(to_binary(&true)?).add_event(
-            Event::new("ImproperUpdate")
-                .add_attribute("old_root", format!("{:?}", old_root))
-                .add_attribute("new_root", format!("{:?}", new_root))
-                .add_attribute("signature", format!("{:?}", signature)),
-        ));
+        let sub_msgs = _fail(deps, info)?.messages;
+        return Ok(Response::new()
+            .set_data(to_binary(&true)?)
+            .add_event(
+                Event::new("ImproperUpdate")
+                    .add_attribute("old_root", format!("{:?}", old_root))
+                    .add_attribute("new_root", format!("{:?}", new_root))
+                    .add_attribute("signature", format!("{:?}", signature)),
+            )
+            .add_submessages(sub_msgs));
     }
 
     Ok(Response::new().set_data(to_binary(&false)?))
@@ -278,7 +281,7 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
 
 pub fn reply_slash_updater(_deps: Deps, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.result {
-        ContractResult::Ok(res) => Ok(Response::new().add_events(res.events)),
+        ContractResult::Ok(res) => Ok(Response::new()),
         ContractResult::Err(e) => Err(ContractError::FailedSlashUpdaterCall(e)),
     }
 }

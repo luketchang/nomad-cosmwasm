@@ -988,6 +988,8 @@ dependencies = [
  "ethers-core",
  "ethers-signers",
  "home",
+ "test-utils",
+ "tokio",
  "updater-manager",
 ]
 

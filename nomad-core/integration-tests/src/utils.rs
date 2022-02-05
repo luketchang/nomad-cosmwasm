@@ -1,9 +1,9 @@
 use cosmwasm_std::testing::{
     mock_dependencies_with_balance, mock_env, mock_info, MockApi, MockStorage,
 };
-use cosmwasm_std::{coins, from_binary, Addr};
+use cosmwasm_std::{coins, from_binary, Addr, Event};
 use cosmwasm_std::{Api, Storage};
-use cw_multi_test::{App, AppBuilder, BankKeeper, ContractWrapper, Executor};
+use cw_multi_test::{App, AppBuilder, AppResponse, BankKeeper, ContractWrapper, Executor};
 
 pub(crate) fn mock_app() -> App {
     let env = mock_env();
@@ -78,4 +78,11 @@ pub(crate) fn store_home_code(app: &mut App) -> u64 {
     );
 
     app.store_code(home_contract)
+}
+
+pub fn app_event_by_ty(res: &AppResponse, ty: &str) -> Option<Event> {
+    res.events
+        .iter()
+        .find(|event| event.ty == ty)
+        .map(|event| event.to_owned())
 }
