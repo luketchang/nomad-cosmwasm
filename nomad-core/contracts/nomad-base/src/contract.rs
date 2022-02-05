@@ -46,7 +46,7 @@ pub fn instantiate(
 pub fn not_failed(deps: Deps) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
     if state == States::Failed {
-        return Err(ContractError::NotFailedError {});
+        return Err(ContractError::FailedState {});
     }
 
     Ok(Response::new())
@@ -289,7 +289,7 @@ mod tests {
             &update.signature.to_vec(),
         )
         .unwrap();
-        assert!(!is_updater_sig)
+        assert!(!is_updater_sig);
     }
 
     #[tokio::test]

@@ -10,7 +10,7 @@ pub enum ContractError {
     InvalidDoubleUpdate {},
 
     #[error("Function not callable in a failed state")]
-    NotFailedError {},
+    FailedState {},
 
     #[error("{0}")]
     SignatureError(#[from] ethers_core::types::SignatureError),
