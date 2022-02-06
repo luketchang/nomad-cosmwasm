@@ -6,6 +6,7 @@ use crate::MessageStatus;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InstantiateMsg {
+    pub chain_addr_length: usize,
     pub local_domain: u32,
     pub remote_domain: u32,
     pub updater: String,

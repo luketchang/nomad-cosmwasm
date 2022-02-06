@@ -1,4 +1,4 @@
-use common::{addr_to_bytes32, destination_and_nonce, Encode, NomadMessage};
+use common::{addr_to_h256, destination_and_nonce, Encode, NomadMessage};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -119,10 +119,10 @@ pub fn try_dispatch(
 
     let nomad_message = NomadMessage {
         origin,
-        sender: addr_to_bytes32(info.sender),
+        sender: addr_to_h256(info.sender),
         nonce,
         destination,
-        recipient: addr_to_bytes32(recipient_addr),
+        recipient: addr_to_h256(recipient_addr),
         body: message.clone(),
     };
 
@@ -337,11 +337,11 @@ mod tests {
         CommittedRootResponse, LocalDomainResponse, StateResponse, UpdaterResponse,
     };
     use common::queue::{EndResponse as QueueEndResponse, LengthResponse as QueueLengthResponse};
-    use common::{States, h256_to_string};
+    use common::{h256_to_string, States};
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
     use merkle::merkle_tree::INITIAL_ROOT;
-    use test_utils::{Updater, event_attr_value_by_key};
+    use test_utils::{event_attr_value_by_key, Updater};
 
     const LOCAL_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =

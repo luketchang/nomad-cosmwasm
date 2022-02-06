@@ -36,6 +36,7 @@ pub struct Message {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum HandleExecuteMsg {
     HandleMsg {
         origin: u32,

@@ -72,6 +72,7 @@ async fn home_calls_updater_manager_slash_updater() {
     let res = app
         .execute_contract(updater_addr.clone(), home_addr.clone(), &update_msg, &[])
         .unwrap();
+    println!("Improper Update: {:?}", res);
 
     assert!(app_event_by_ty(&res, "wasm-SlashUpdater").is_some())
 }

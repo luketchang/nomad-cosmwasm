@@ -1,4 +1,4 @@
-use common::{h256_to_addr, Decode, HandleExecuteMsg, MessageStatus, NomadMessage};
+use common::{h256_to_n_byte_addr, Decode, HandleExecuteMsg, MessageStatus, NomadMessage};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -9,7 +9,7 @@ use cw2::set_contract_version;
 use ethers_core::types::H256;
 
 use crate::error::ContractError;
-use crate::state::{CONFIRM_AT, MESSAGES, OPTIMISTIC_SECONDS, REMOTE_DOMAIN};
+use crate::state::{CHAIN_ADDR_LENGTH, CONFIRM_AT, MESSAGES, OPTIMISTIC_SECONDS, REMOTE_DOMAIN};
 use common::replica::{
     AcceptableRootResponse, ConfirmAtResponse, ExecuteMsg, InstantiateMsg, MessageStatusResponse,
     OptimisticSecondsResponse, QueryMsg, RemoteDomainResponse,
@@ -30,6 +30,7 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     nomad_base::instantiate(deps.branch(), env, info, msg.clone().into())?;
 
+    CHAIN_ADDR_LENGTH.save(deps.storage, &msg.chain_addr_length)?;
     REMOTE_DOMAIN.save(deps.storage, &msg.remote_domain)?;
     OPTIMISTIC_SECONDS.save(deps.storage, &msg.optimistic_seconds)?;
     nomad_base::_set_committed_root(deps.branch(), msg.committed_root)?;
@@ -175,16 +176,21 @@ pub fn try_process(
     MESSAGES.save(deps.storage, leaf.as_bytes(), &MessageStatus::Processed)?;
 
     // TODO: check gas limit to ensure rest of tx doesn't fail for gas
+    let addr_length = CHAIN_ADDR_LENGTH.load(deps.storage)?;
 
     let handle_msg: HandleExecuteMsg = nomad_message.clone().into();
     let wasm_msg = WasmMsg::Execute {
-        contract_addr: h256_to_addr(deps.as_ref(), nomad_message.recipient).to_string(),
+        contract_addr: h256_to_n_byte_addr(deps.as_ref(), addr_length, nomad_message.recipient)
+            .to_string(),
         msg: to_binary(&handle_msg)?,
         funds: info.funds,
     };
     let cosmos_msg = CosmosMsg::Wasm(wasm_msg);
 
-    println!("wasm execute contract addr: {:?}", h256_to_addr(deps.as_ref(), nomad_message.recipient).to_string());
+    println!(
+        "wasm execute contract addr: {:?}",
+        h256_to_n_byte_addr(deps.as_ref(), addr_length, nomad_message.recipient).to_string()
+    );
 
     let sub_msg = SubMsg {
         id: PROCESS_ID,
@@ -279,9 +285,7 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
 
 pub fn reply_process(_deps: Deps, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.result {
-        ContractResult::Ok(res) => Ok(Response::new()
-            .add_events(res.events)
-            .set_data(to_binary(&true)?)),
+        ContractResult::Ok(res) => Ok(Response::new().set_data(to_binary(&true)?)),
         ContractResult::Err(e) => Err(ContractError::FailedProcessCall(e)),
     }
 }
@@ -357,6 +361,7 @@ mod tests {
     use cosmwasm_std::{coins, from_binary};
     use test_utils::{event_attr_value_by_key, Updater};
 
+    const CHAIN_ADDR_LENGTH: usize = 42;
     const LOCAL_DOMAIN: u32 = 2000;
     const REMOTE_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =
@@ -370,6 +375,7 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
+            chain_addr_length: CHAIN_ADDR_LENGTH,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
@@ -418,6 +424,7 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
+            chain_addr_length: CHAIN_ADDR_LENGTH,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
@@ -456,6 +463,7 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
+            chain_addr_length: CHAIN_ADDR_LENGTH,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
@@ -521,6 +529,7 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
+            chain_addr_length: CHAIN_ADDR_LENGTH,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
@@ -561,6 +570,7 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
+            chain_addr_length: CHAIN_ADDR_LENGTH,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
@@ -617,6 +627,7 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
+            chain_addr_length: CHAIN_ADDR_LENGTH,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
