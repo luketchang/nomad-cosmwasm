@@ -988,6 +988,8 @@ dependencies = [
  "ethers-core",
  "ethers-signers",
  "home",
+ "test-recipient",
+ "test-replica",
  "test-utils",
  "tokio",
  "updater-manager",
@@ -1618,6 +1620,42 @@ name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
+
+[[package]]
+name = "test-recipient"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw2",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "test-replica"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw2",
+ "ethers-core",
+ "merkle",
+ "nomad-base",
+ "ownable",
+ "replica",
+ "schemars",
+ "serde",
+ "thiserror",
+ "tokio",
+]
 
 [[package]]
 name = "test-utils"

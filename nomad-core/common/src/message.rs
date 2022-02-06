@@ -36,11 +36,13 @@ pub struct Message {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct HandleMsg {
-    origin: u32,
-    nonce: u32,
-    sender: H256,
-    message: Vec<u8>,
+pub enum HandleExecuteMsg {
+    HandleMsg {
+        origin: u32,
+        nonce: u32,
+        sender: H256,
+        message: Vec<u8>,
+    },
 }
 
 impl NomadMessage {
@@ -109,9 +111,9 @@ impl std::fmt::Display for NomadMessage {
     }
 }
 
-impl From<NomadMessage> for HandleMsg {
+impl From<NomadMessage> for HandleExecuteMsg {
     fn from(msg: NomadMessage) -> Self {
-        Self {
+        Self::HandleMsg {
             origin: msg.origin,
             nonce: msg.nonce,
             sender: msg.sender,

@@ -1,4 +1,4 @@
-use common::{bytes32_to_addr, Decode, HandleMsg, MessageStatus, NomadMessage};
+use common::{bytes32_to_addr, Decode, HandleExecuteMsg, MessageStatus, NomadMessage};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -144,7 +144,7 @@ pub fn try_prove(
 
     let acceptable_root = query_acceptable_root(deps.as_ref(), env, calculated_root)?.acceptable;
     if acceptable_root {
-        MESSAGES.save(deps.storage, leaf.as_bytes(), &MessageStatus::Proven)?;
+        _set_message_proven(deps, leaf)?;
         return Ok(Response::new().set_data(to_binary(&true)?));
     }
 
@@ -176,7 +176,7 @@ pub fn try_process(
 
     // TODO: check gas limit to ensure rest of tx doesn't fail for gas
 
-    let handle_msg: HandleMsg = nomad_message.clone().into();
+    let handle_msg: HandleExecuteMsg = nomad_message.clone().into();
     let wasm_msg = WasmMsg::Execute {
         contract_addr: bytes32_to_addr(deps.as_ref(), nomad_message.recipient).to_string(),
         msg: to_binary(&handle_msg)?,
@@ -258,11 +258,16 @@ pub fn try_set_updater(
     Ok(nomad_base::_set_updater(deps, updater)?)
 }
 
-fn _fail(mut deps: DepsMut, _info: MessageInfo) -> Result<Response, nomad_base::ContractError> {
+pub fn _set_message_proven(deps: DepsMut, leaf: H256) -> Result<Response, ContractError> {
+    MESSAGES.save(deps.storage, leaf.as_bytes(), &MessageStatus::Proven)?;
+    Ok(Response::new())
+}
+
+pub fn _fail(mut deps: DepsMut, _info: MessageInfo) -> Result<Response, nomad_base::ContractError> {
     Ok(nomad_base::_set_failed(deps.branch())?)
 }
 
-#[entry_point]
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.id {
         PROCESS_ID => reply_process(deps.as_ref(), env, msg),
