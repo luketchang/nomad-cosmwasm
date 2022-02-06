@@ -1,5 +1,5 @@
 use cosmwasm_std::{Addr, CanonicalAddr, Deps};
-use ethers_core::types::H256;
+use ethers_core::types::{H256, H160};
 use std::io::Write;
 
 /// Destination and destination-specific nonce combined in single field (
@@ -8,6 +8,12 @@ pub fn destination_and_nonce(destination: u32, nonce: u32) -> u64 {
     assert!(destination < u32::MAX);
     assert!(nonce < u32::MAX);
     ((destination as u64) << 32) | nonce as u64
+}
+
+/// Convert ethers H256 to string (to_string implementation interprets diff)
+pub fn h256_to_string(h256: H256) -> String {
+    let bytes = h256.to_fixed_bytes();
+    String::from_utf8(bytes.to_vec()).unwrap()
 }
 
 /// Convert cosmwasm_std::Addr into H256 (fixed 32 byte array)
@@ -29,7 +35,8 @@ pub fn addr_to_bytes32(address: Addr) -> H256 {
     H256::from(sized)
 }
 
-pub fn bytes32_to_addr(deps: Deps, bytes32: H256) -> Addr {
-    let canonical: CanonicalAddr = bytes32.as_bytes().into();
-    deps.api.addr_humanize(&canonical).unwrap()
+pub fn h256_to_addr(deps: Deps, h256: H256) -> Addr {
+    let h160: H160 = h256.into();
+    let h160_string = format!("{:#x}", h160);
+    deps.api.addr_validate(&h160_string).unwrap()
 }

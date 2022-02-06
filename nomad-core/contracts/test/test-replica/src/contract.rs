@@ -1,4 +1,4 @@
-use common::{bytes32_to_addr, Decode, HandleExecuteMsg, MessageStatus, NomadMessage};
+use common::{h256_to_addr, Decode, HandleExecuteMsg, MessageStatus, NomadMessage};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{

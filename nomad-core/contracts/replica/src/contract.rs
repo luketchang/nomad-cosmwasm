@@ -1,4 +1,4 @@
-use common::{bytes32_to_addr, Decode, HandleExecuteMsg, MessageStatus, NomadMessage};
+use common::{h256_to_addr, Decode, HandleExecuteMsg, MessageStatus, NomadMessage};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -178,11 +178,13 @@ pub fn try_process(
 
     let handle_msg: HandleExecuteMsg = nomad_message.clone().into();
     let wasm_msg = WasmMsg::Execute {
-        contract_addr: bytes32_to_addr(deps.as_ref(), nomad_message.recipient).to_string(),
+        contract_addr: h256_to_addr(deps.as_ref(), nomad_message.recipient).to_string(),
         msg: to_binary(&handle_msg)?,
         funds: info.funds,
     };
     let cosmos_msg = CosmosMsg::Wasm(wasm_msg);
+
+    println!("wasm execute contract addr: {:?}", h256_to_addr(deps.as_ref(), nomad_message.recipient).to_string());
 
     let sub_msg = SubMsg {
         id: PROCESS_ID,

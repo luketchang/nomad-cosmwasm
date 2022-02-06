@@ -37,7 +37,7 @@ pub(crate) fn instantiate_home(
         .unwrap()
 }
 
-pub(crate) fn instantiate_replica(
+pub(crate) fn instantiate_test_replica(
     app: &mut App,
     owner: Addr,
     local_domain: u32,
@@ -46,15 +46,21 @@ pub(crate) fn instantiate_replica(
     committed_root: H256,
     optimistic_seconds: u64,
 ) -> Addr {
-    let code_id = store_replica_code(app);
-    let init_msg = common::test::test_recipient::InstantiateMsg {};
+    let code_id = store_test_replica_code(app);
+    let init_msg = common::replica::InstantiateMsg {
+        local_domain,
+        remote_domain,
+        updater: updater.to_string(),
+        committed_root,
+        optimistic_seconds,
+    };
 
     app.instantiate_contract(
         code_id,
         owner,
         &init_msg,
         &[],
-        String::from("REPLICA"),
+        String::from("test_replica"),
         None,
     )
     .unwrap()
@@ -77,8 +83,8 @@ pub(crate) fn instantiate_updater_manager(app: &mut App, owner: Addr, updater: A
     .unwrap()
 }
 
-pub(crate) fn instantiate_recipient(app: &mut App, deployer: Addr) -> Addr {
-    let code_id = store_updater_manager_code(app);
+pub(crate) fn instantiate_test_recipient(app: &mut App, deployer: Addr) -> Addr {
+    let code_id = store_test_recipient_code(app);
     let init_msg = common::test::test_recipient::InstantiateMsg {};
 
     app.instantiate_contract(
@@ -105,8 +111,8 @@ pub(crate) fn store_home_code(app: &mut App) -> u64 {
     app.store_code(home_contract)
 }
 
-pub(crate) fn store_replica_code(app: &mut App) -> u64 {
-    let replica_contract = Box::new(
+pub(crate) fn store_test_replica_code(app: &mut App) -> u64 {
+    let test_replica_contract = Box::new(
         ContractWrapper::new_with_empty(
             test_replica::contract::execute,
             test_replica::contract::instantiate,
@@ -115,7 +121,7 @@ pub(crate) fn store_replica_code(app: &mut App) -> u64 {
         .with_reply(test_replica::contract::reply),
     );
 
-    app.store_code(replica_contract)
+    app.store_code(test_replica_contract)
 }
 
 pub(crate) fn store_updater_manager_code(app: &mut App) -> u64 {
@@ -131,14 +137,14 @@ pub(crate) fn store_updater_manager_code(app: &mut App) -> u64 {
     app.store_code(updater_manager_contract)
 }
 
-pub(crate) fn store_recipient_code(app: &mut App) -> u64 {
-    let recipient_contract = Box::new(ContractWrapper::new_with_empty(
+pub(crate) fn store_test_recipient_code(app: &mut App) -> u64 {
+    let test_recipient_contract = Box::new(ContractWrapper::new_with_empty(
         test_recipient::contract::execute,
         test_recipient::contract::instantiate,
         test_recipient::contract::query,
     ));
 
-    app.store_code(recipient_contract)
+    app.store_code(test_recipient_contract)
 }
 
 pub fn app_event_by_ty(res: &AppResponse, ty: &str) -> Option<Event> {

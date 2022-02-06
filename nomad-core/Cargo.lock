@@ -288,6 +288,7 @@ dependencies = [
  "cosmwasm-std",
  "ethers-core",
  "ethers-signers",
+ "hex",
  "schemars",
  "serde",
  "sha3 0.10.0",

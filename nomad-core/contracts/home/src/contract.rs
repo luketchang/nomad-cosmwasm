@@ -337,12 +337,11 @@ mod tests {
         CommittedRootResponse, LocalDomainResponse, StateResponse, UpdaterResponse,
     };
     use common::queue::{EndResponse as QueueEndResponse, LengthResponse as QueueLengthResponse};
-    use common::States;
+    use common::{States, h256_to_string};
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
     use merkle::merkle_tree::INITIAL_ROOT;
-    use test_utils::Updater;
-    use test_utils::{event_attr_value_by_key, h256_to_string};
+    use test_utils::{Updater, event_attr_value_by_key};
 
     const LOCAL_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =

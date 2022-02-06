@@ -22,10 +22,10 @@ pub enum ContractError {
     #[error("Not updater signature")]
     NotUpdaterSignature,
 
-    #[error("Failed to have recipient call process message. Leaf: {leaf}. Index: {index}")]
+    #[error("Failed to prove message. Leaf: {leaf}. Index: {index}")]
     FailedProveCall { leaf: H256, index: u64 },
 
-    #[error("Failed to have recipient call process: {0}")]
+    #[error("Failed to process message with error: {0}")]
     FailedProcessCall(String),
 
     #[error("Unknown reply message id received: {id}")]
