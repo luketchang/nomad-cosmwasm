@@ -23,7 +23,7 @@ pub enum States {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum MessageStatus {
     None,
-    Proven,
+    Pending,
     Processed,
 }
 

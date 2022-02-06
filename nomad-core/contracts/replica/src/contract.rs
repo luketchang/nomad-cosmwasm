@@ -169,7 +169,7 @@ pub fn try_process(
 
     let leaf = nomad_message.to_leaf();
     let message_status = query_message_status(deps.as_ref(), leaf)?.status;
-    if message_status != MessageStatus::Proven {
+    if message_status != MessageStatus::Pending {
         return Err(ContractError::MessageNotYetProven { leaf });
     }
 
@@ -267,7 +267,7 @@ pub fn try_set_updater(
 }
 
 pub fn _set_message_proven(deps: DepsMut, leaf: H256) -> Result<Response, ContractError> {
-    MESSAGES.save(deps.storage, leaf.as_bytes(), &MessageStatus::Proven)?;
+    MESSAGES.save(deps.storage, leaf.as_bytes(), &MessageStatus::Pending)?;
     Ok(Response::new())
 }
 
@@ -286,7 +286,7 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
 pub fn reply_process(_deps: Deps, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.result {
         ContractResult::Ok(res) => Ok(Response::new().set_data(to_binary(&true)?)),
-        ContractResult::Err(e) => Err(ContractError::FailedProcessCall(e)),
+        ContractResult::Err(e) => Ok(Response::new().set_data(to_binary(&false)?)),
     }
 }
 

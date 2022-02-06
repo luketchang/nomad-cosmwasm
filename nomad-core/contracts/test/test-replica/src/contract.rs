@@ -46,11 +46,18 @@ pub fn execute(
     match msg {
         ExecuteMsg::ReplicaExecuteMsg(msg) => Ok(replica::execute(deps, env, info, msg)?),
         ExecuteMsg::SetProven { leaf } => _set_proven(deps, leaf),
+        ExecuteMsg::SetCommittedRoot { root } => _set_committed_root(deps, root),
     }
 }
 
 pub fn _set_proven(deps: DepsMut, leaf: H256) -> Result<Response, ContractError> {
-    MESSAGES.save(deps.storage, leaf.as_bytes(), &MessageStatus::Proven)?;
+    MESSAGES.save(deps.storage, leaf.as_bytes(), &MessageStatus::Pending)?;
+    Ok(Response::new())
+}
+
+pub fn _set_committed_root(mut deps: DepsMut, root: H256) -> Result<Response, ContractError> {
+    nomad_base::_set_committed_root(deps.branch(), root)?;
+    CONFIRM_AT.save(deps.storage, root.as_bytes(), &1);
     Ok(Response::new())
 }
 

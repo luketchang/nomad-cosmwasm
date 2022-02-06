@@ -100,6 +100,21 @@ pub(crate) fn instantiate_test_recipient(app: &mut App, deployer: Addr) -> Addr 
     .unwrap()
 }
 
+pub(crate) fn instantiate_bad_recipient(app: &mut App, deployer: Addr) -> Addr {
+    let code_id = store_bad_recipient_code(app);
+    let init_msg = common::test::test_recipient::InstantiateMsg {};
+
+    app.instantiate_contract(
+        code_id,
+        deployer,
+        &init_msg,
+        &[],
+        String::from("BAD_RECIPIENT"),
+        None,
+    )
+    .unwrap()
+}
+
 pub(crate) fn store_home_code(app: &mut App) -> u64 {
     let home_contract = Box::new(
         ContractWrapper::new_with_empty(
@@ -147,6 +162,16 @@ pub(crate) fn store_test_recipient_code(app: &mut App) -> u64 {
     ));
 
     app.store_code(test_recipient_contract)
+}
+
+pub(crate) fn store_bad_recipient_code(app: &mut App) -> u64 {
+    let bad_recipient_contract = Box::new(ContractWrapper::new_with_empty(
+        bad_recipient::contract::execute,
+        bad_recipient::contract::instantiate,
+        bad_recipient::contract::query,
+    ));
+
+    app.store_code(bad_recipient_contract)
 }
 
 pub fn app_event_by_ty(res: &AppResponse, ty: &str) -> Option<Event> {

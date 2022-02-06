@@ -11,6 +11,7 @@ use crate::MessageStatus;
 pub enum ExecuteMsg {
     ReplicaExecuteMsg(replica::ExecuteMsg),
     SetProven { leaf: H256 },
+    SetCommittedRoot { root: H256 },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

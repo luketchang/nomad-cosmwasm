@@ -14,5 +14,6 @@ members = [
     "contracts/queue",
     "contracts/merkle",
     "contracts/test/test-recipient",
+    "contracts/test/bad-recipient",
     "contracts/test/test-replica",
 ]

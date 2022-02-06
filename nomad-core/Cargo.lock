@@ -38,6 +38,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bad-recipient"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw2",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "base16ct"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -983,12 +998,14 @@ dependencies = [
 name = "integration-tests"
 version = "0.1.0"
 dependencies = [
+ "bad-recipient",
  "common",
  "cosmwasm-std",
  "cw-multi-test",
  "ethers-core",
  "ethers-signers",
  "home",
+ "merkle",
  "test-recipient",
  "test-replica",
  "test-utils",
@@ -1665,7 +1682,10 @@ dependencies = [
  "cosmwasm-std",
  "ethers-core",
  "ethers-signers",
+ "merkle",
  "schemars",
+ "serde",
+ "serde_json",
  "sha3 0.10.0",
 ]
 

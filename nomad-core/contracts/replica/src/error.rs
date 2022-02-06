@@ -16,7 +16,7 @@ pub enum ContractError {
     #[error("Not a current committed root: {old_root}")]
     NotCurrentCommittedRoot { old_root: H256 },
 
-    #[error("Incorrectly tried processing message from domain {destination}")]
+    #[error("Failed to process message to wrong destination domain: {destination}")]
     WrongDestination { destination: u32 },
 
     #[error("Not updater signature")]
