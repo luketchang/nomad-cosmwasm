@@ -1,7 +1,7 @@
 use common::MessageStatus;
 use cw_storage_plus::{Item, Map};
 
-pub const CHAIN_ADDR_LENGTH: Item<usize> = Item::new("replica_chain_addr_length");
+pub const CHAIN_ADDR_LENGTH_BYTES: Item<usize> = Item::new("replica_chain_addr_length");
 
 pub const REMOTE_DOMAIN: Item<u32> = Item::new("replica_remote_domain");
 pub const OPTIMISTIC_SECONDS: Item<u64> = Item::new("replica_optimistic_seconds");

@@ -37,6 +37,7 @@ schemars = "0.8"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0" }
 ethers-core = "0.6.2"
+sha3 = "0.10.0"
 
 ownable = { path = "../ownable", features = ["library"] }
 common = { path = "../../common" }

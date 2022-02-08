@@ -106,7 +106,7 @@ pub fn is_updater_signature(
 
     let digest = H256::from_slice(
         Keccak256::new()
-            .chain(H256::from(home_domain_hash))
+            .chain(home_domain_hash)
             .chain(old_root)
             .chain(new_root)
             .finalize()

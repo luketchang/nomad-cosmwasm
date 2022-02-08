@@ -9,7 +9,9 @@ use cw2::set_contract_version;
 use ethers_core::types::H256;
 
 use crate::error::ContractError;
-use crate::state::{CHAIN_ADDR_LENGTH, CONFIRM_AT, MESSAGES, OPTIMISTIC_SECONDS, REMOTE_DOMAIN};
+use crate::state::{
+    CHAIN_ADDR_LENGTH_BYTES, CONFIRM_AT, MESSAGES, OPTIMISTIC_SECONDS, REMOTE_DOMAIN,
+};
 use common::replica::{
     AcceptableRootResponse, ConfirmAtResponse, ExecuteMsg, InstantiateMsg, MessageStatusResponse,
     OptimisticSecondsResponse, QueryMsg, RemoteDomainResponse,
@@ -30,7 +32,7 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     nomad_base::instantiate(deps.branch(), env, info, msg.clone().into())?;
 
-    CHAIN_ADDR_LENGTH.save(deps.storage, &msg.chain_addr_length)?;
+    CHAIN_ADDR_LENGTH_BYTES.save(deps.storage, &msg.CHAIN_ADDR_LENGTH_BYTES)?;
     REMOTE_DOMAIN.save(deps.storage, &msg.remote_domain)?;
     OPTIMISTIC_SECONDS.save(deps.storage, &msg.optimistic_seconds)?;
     nomad_base::_set_committed_root(deps.branch(), msg.committed_root)?;
@@ -176,7 +178,7 @@ pub fn try_process(
     MESSAGES.save(deps.storage, leaf.as_bytes(), &MessageStatus::Processed)?;
 
     // TODO: check gas limit to ensure rest of tx doesn't fail for gas
-    let addr_length = CHAIN_ADDR_LENGTH.load(deps.storage)?;
+    let addr_length = CHAIN_ADDR_LENGTH_BYTES.load(deps.storage)?;
 
     let handle_msg: HandleExecuteMsg = nomad_message.clone().into();
     let wasm_msg = WasmMsg::Execute {
@@ -361,7 +363,7 @@ mod tests {
     use cosmwasm_std::{coins, from_binary};
     use test_utils::{event_attr_value_by_key, Updater};
 
-    const CHAIN_ADDR_LENGTH: usize = 42;
+    const CHAIN_ADDR_LENGTH_BYTES: usize = 42;
     const LOCAL_DOMAIN: u32 = 2000;
     const REMOTE_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =
@@ -375,7 +377,7 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            chain_addr_length: CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
@@ -424,7 +426,7 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            chain_addr_length: CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
@@ -463,7 +465,7 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            chain_addr_length: CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
@@ -529,7 +531,7 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            chain_addr_length: CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
@@ -570,7 +572,7 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            chain_addr_length: CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),
@@ -627,7 +629,7 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            chain_addr_length: CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
             updater: UPDATER_PUBKEY.to_owned(),

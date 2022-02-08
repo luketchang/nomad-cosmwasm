@@ -38,7 +38,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     DomainToReplica { domain: u32 },
     ReplicaToDomain { replica: String },
-    WatcherPermission { domain: u32, watcher: String },
+    WatcherPermission { watcher: H256, domain: u32 },
     IsReplica { replica: String },
     LocalDomain {},
     Owner {},

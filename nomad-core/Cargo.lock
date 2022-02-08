@@ -324,6 +324,7 @@ dependencies = [
  "ownable",
  "schemars",
  "serde",
+ "sha3 0.10.0",
  "thiserror",
 ]
 

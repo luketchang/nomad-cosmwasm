@@ -14,7 +14,7 @@ mod test {
         instantiate_test_replica, mock_app,
     };
 
-    const CHAIN_ADDR_LENGTH: usize = 11; // e.g. "Contract #0".len()
+    const CHAIN_ADDR_LENGTH_BYTES: usize = 11; // e.g. "Contract #0".len()
     const REMOTE_DOMAIN: u32 = 1000;
     const LOCAL_DOMAIN: u32 = 2000;
     const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
@@ -35,7 +35,7 @@ mod test {
         let replica_addr = instantiate_test_replica(
             &mut app,
             owner.clone(),
-            CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
             updater_addr,
@@ -92,7 +92,7 @@ mod test {
         let replica_addr = instantiate_test_replica(
             &mut app,
             owner.clone(),
-            CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
             updater_addr,
@@ -148,7 +148,7 @@ mod test {
         let replica_addr = instantiate_test_replica(
             &mut app,
             owner.clone(),
-            CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
             updater_addr,
@@ -206,7 +206,7 @@ mod test {
         let replica_addr = instantiate_test_replica(
             &mut app,
             owner.clone(),
-            CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
             updater_addr,
@@ -255,7 +255,7 @@ mod test {
         let replica_addr = instantiate_test_replica(
             &mut app,
             owner.clone(),
-            CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
             updater_addr,
@@ -304,7 +304,7 @@ mod test {
         let replica_addr = instantiate_test_replica(
             &mut app,
             owner.clone(),
-            CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
             updater_addr,
@@ -358,7 +358,7 @@ mod test {
         let replica_addr = instantiate_test_replica(
             &mut app,
             owner.clone(),
-            CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
             updater_addr,
@@ -416,7 +416,7 @@ mod test {
         let replica_addr = instantiate_test_replica(
             &mut app,
             owner.clone(),
-            CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
             updater_addr,
@@ -495,7 +495,7 @@ mod test {
         let replica_addr = instantiate_test_replica(
             &mut app,
             owner.clone(),
-            CHAIN_ADDR_LENGTH,
+            CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
             updater_addr,

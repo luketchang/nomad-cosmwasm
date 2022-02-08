@@ -39,7 +39,7 @@ pub mod helpers {
     pub(crate) fn instantiate_test_replica(
         app: &mut App,
         owner: Addr,
-        chain_addr_length: usize,
+        CHAIN_ADDR_LENGTH_BYTES: usize,
         local_domain: u32,
         remote_domain: u32,
         updater: Addr,
@@ -48,7 +48,7 @@ pub mod helpers {
     ) -> Addr {
         let code_id = store_test_replica_code(app);
         let init_msg = common::replica::InstantiateMsg {
-            chain_addr_length,
+            CHAIN_ADDR_LENGTH_BYTES,
             local_domain,
             remote_domain,
             updater: updater.to_string(),
