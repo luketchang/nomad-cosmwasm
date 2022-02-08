@@ -1,5 +1,4 @@
 use cosmwasm_std::{Event, Response};
-use ethers_core::types::H256;
 
 mod updater_utils;
 pub use updater_utils::*;

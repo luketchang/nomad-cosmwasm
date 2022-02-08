@@ -1,5 +1,4 @@
 use cosmwasm_std::StdError;
-use ethers_core::types::H256;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

@@ -285,8 +285,8 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
 
 pub fn reply_process(_deps: Deps, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.result {
-        ContractResult::Ok(res) => Ok(Response::new().set_data(to_binary(&true)?)),
-        ContractResult::Err(e) => Ok(Response::new().set_data(to_binary(&false)?)),
+        ContractResult::Ok(_) => Ok(Response::new().set_data(to_binary(&true)?)),
+        ContractResult::Err(_) => Ok(Response::new().set_data(to_binary(&false)?)),
     }
 }
 
@@ -496,7 +496,7 @@ mod tests {
             new_root: first_new_root,
             signature: first_update.signature.to_vec(),
         };
-        let res = execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+        execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
         // Check committed root now first new root
         let res = query(deps.as_ref(), mock_env(), QueryMsg::CommittedRoot {}).unwrap();
@@ -509,7 +509,7 @@ mod tests {
             new_root: second_new_root,
             signature: second_update.signature.to_vec(),
         };
-        let res = execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+        execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
         // Check committed root now second new root
         let res = query(deps.as_ref(), mock_env(), QueryMsg::CommittedRoot {}).unwrap();
@@ -601,7 +601,7 @@ mod tests {
             new_root,
             signature: first_update.signature.to_vec(),
         };
-        let res = execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+        execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
         // Check committed root now first new root
         let res = query(deps.as_ref(), mock_env(), QueryMsg::CommittedRoot {}).unwrap();

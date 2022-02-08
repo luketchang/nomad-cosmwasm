@@ -281,7 +281,7 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
 
 pub fn reply_slash_updater(_deps: Deps, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.result {
-        ContractResult::Ok(res) => Ok(Response::new()),
+        ContractResult::Ok(_) => Ok(Response::new()),
         ContractResult::Err(e) => Err(ContractError::FailedSlashUpdaterCall(e)),
     }
 }

@@ -1,5 +1,5 @@
-use cosmwasm_std::{Addr, CanonicalAddr, Deps};
-use ethers_core::types::{H160, H256};
+use cosmwasm_std::{Addr, Deps};
+use ethers_core::types::H256;
 use std::io::Write;
 
 /// Destination and destination-specific nonce combined in single field (

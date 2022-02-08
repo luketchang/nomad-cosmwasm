@@ -1,10 +1,7 @@
-use common::{Decode, HandleExecuteMsg, MessageStatus, NomadMessage};
+use common::MessageStatus;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    from_binary, to_binary, Binary, ContractResult, CosmosMsg, Deps, DepsMut, Env, Event,
-    MessageInfo, Reply, ReplyOn, Response, StdResult, SubMsg, WasmMsg,
-};
+use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult};
 use cw2::set_contract_version;
 use ethers_core::types::H256;
 
@@ -13,7 +10,7 @@ use common::{
     replica::{InstantiateMsg, QueryMsg},
     test::test_replica::ExecuteMsg,
 };
-use replica::state::{CONFIRM_AT, MESSAGES, OPTIMISTIC_SECONDS, REMOTE_DOMAIN};
+use replica::state::{CONFIRM_AT, MESSAGES};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:test-replica";
@@ -28,6 +25,7 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg, // This is of type replica::InstantiateMsg
 ) -> Result<Response, ContractError> {
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(replica::instantiate(
         deps.branch(),
         env,
@@ -57,7 +55,7 @@ pub fn _set_proven(deps: DepsMut, leaf: H256) -> Result<Response, ContractError>
 
 pub fn _set_committed_root(mut deps: DepsMut, root: H256) -> Result<Response, ContractError> {
     nomad_base::_set_committed_root(deps.branch(), root)?;
-    CONFIRM_AT.save(deps.storage, root.as_bytes(), &1);
+    CONFIRM_AT.save(deps.storage, root.as_bytes(), &1)?;
     Ok(Response::new())
 }
 
