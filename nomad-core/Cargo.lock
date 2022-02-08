@@ -320,6 +320,7 @@ dependencies = [
  "cosmwasm-storage",
  "cw-storage-plus 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cw2",
+ "ethers-core",
  "ownable",
  "schemars",
  "serde",
