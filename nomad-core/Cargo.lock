@@ -311,6 +311,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "connection-manager"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw2",
+ "ownable",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
