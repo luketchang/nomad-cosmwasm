@@ -238,6 +238,11 @@ pub fn watcher_domain_hash(watcher: H160, domain: u32) -> H256 {
     keccak256(buf).into()
 }
 
+pub fn addr_domain_hash(addr: Addr, domain: u32) -> H256 {
+    let domain_addr = addr.to_string() + &domain.to_string();
+    keccak256(domain_addr.as_bytes()).into()
+}
+
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {

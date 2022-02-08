@@ -7,4 +7,3 @@ pub mod queue;
 pub mod replica;
 pub mod test;
 pub mod updater_manager;
-pub mod connection_manager;
