@@ -238,9 +238,39 @@ pub fn watcher_domain_hash(watcher: H160, domain: u32) -> H256 {
     keccak256(buf).into()
 }
 
-pub fn addr_domain_hash(addr: Addr, domain: u32) -> H256 {
-    let domain_addr = addr.to_string() + &domain.to_string();
-    keccak256(domain_addr.as_bytes()).into()
+pub fn recover_from_watcher_sig(
+    deps: Deps,
+    domain: u32,
+    replica: H256,
+    updater: H256,
+    signature: &[u8],
+) -> Result<H160, ContractError> {
+    let addr_length = CHAIN_ADDR_LENGTH_BYTES.load(deps.storage)?;
+    let replica_addr = h256_to_n_byte_addr(deps.clone(), addr_length, replica);
+
+    let home_domain_hash_resp: HomeDomainHashResponse = deps
+        .querier
+        .query_wasm_smart(replica_addr, &replica::QueryMsg::HomeDomainHash {})?;
+    let home_domain_hash = home_domain_hash_resp.home_domain_hash;
+
+    let digest = H256::from_slice(
+        Keccak256::new()
+            .chain(home_domain_hash)
+            .chain(domain)
+            .chain(updater)
+            .finalize()
+            .as_slice(),
+    );
+
+    let sig = Signature::try_from(signature)?;
+    Ok(sig.recover(RecoveryMessage::Data(digest.as_bytes().to_vec()))?)
+}
+
+pub fn watcher_domain_hash(deps: Deps, watcher: H256, domain: u32) -> H256 {
+    let addr_length = CHAIN_ADDR_LENGTH_BYTES.load(deps.storage)?;
+    let watcher_domain_concat =
+        h256_to_n_byte_addr(deps, addr_length, watcher).to_string() + &domain.to_string();
+    keccak256(watcher_domain_concat.as_bytes()).into()
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
