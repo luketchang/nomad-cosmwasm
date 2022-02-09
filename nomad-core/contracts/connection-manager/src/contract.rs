@@ -256,7 +256,7 @@ pub fn recover_from_watcher_sig(
     let digest = H256::from_slice(
         Keccak256::new()
             .chain(home_domain_hash)
-            .chain(domain)
+            .chain(domain.to_be_bytes())
             .chain(updater)
             .finalize()
             .as_slice(),
@@ -266,11 +266,10 @@ pub fn recover_from_watcher_sig(
     Ok(sig.recover(RecoveryMessage::Data(digest.as_bytes().to_vec()))?)
 }
 
-pub fn watcher_domain_hash(deps: Deps, watcher: H256, domain: u32) -> H256 {
-    let addr_length = CHAIN_ADDR_LENGTH_BYTES.load(deps.storage)?;
-    let watcher_domain_concat =
-        h256_to_n_byte_addr(deps, addr_length, watcher).to_string() + &domain.to_string();
-    keccak256(watcher_domain_concat.as_bytes()).into()
+pub fn watcher_domain_hash(deps: Deps, watcher: H160, domain: u32) -> H256 {
+    let mut buf = watcher.to_fixed_bytes().to_vec();
+    buf.append(&mut domain.to_be_bytes().to_vec());
+    keccak256(buf).into()
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
