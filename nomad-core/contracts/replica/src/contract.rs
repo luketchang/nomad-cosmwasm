@@ -368,7 +368,6 @@ mod tests {
     const REMOTE_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =
         "1111111111111111111111111111111111111111111111111111111111111111";
-    const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
 
     #[test]
     fn proper_initialization() {

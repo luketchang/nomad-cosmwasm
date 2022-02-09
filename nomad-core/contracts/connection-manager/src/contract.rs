@@ -29,7 +29,7 @@ pub fn instantiate(
     mut deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msg: InstantiateMsg,
+    _msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     ownable::instantiate(deps.branch(), env, info, common::ownable::InstantiateMsg {})?;
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -43,15 +43,29 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    // match msg {
-    //     ExecuteMsg::UnenrollReplica {
-    //         domain,
-    //         updater,
-    //         signature,
-    //     } => try_unenroll_replica(deps, domain, updater, signature),
-    // }
-
-    Ok(Response::new())
+    match msg {
+        ExecuteMsg::UnenrollReplica {
+            domain,
+            updater,
+            signature,
+        } => try_unenroll_replica(deps, domain, updater, signature),
+        ExecuteMsg::OwnerEnrollReplica { domain, replica } => {
+            try_owner_enroll_replica(deps, info, domain, replica)
+        }
+        ExecuteMsg::OwnerUnenrollReplica { replica } => {
+            try_owner_unenroll_replica(deps, info, replica)
+        }
+        ExecuteMsg::SetWatcherPermission {
+            domain,
+            watcher,
+            access,
+        } => try_set_watcher_permission(deps, info, domain, watcher, access),
+        ExecuteMsg::SetHome { home } => try_set_home(deps, info, home),
+        ExecuteMsg::RenounceOwnership {} => Ok(ownable::try_renounce_ownership(deps, info)?),
+        ExecuteMsg::TransferOwnership { new_owner } => {
+            Ok(ownable::try_transfer_ownership(deps, info, new_owner)?)
+        }
+    }
 }
 
 pub fn try_unenroll_replica(
@@ -94,6 +108,84 @@ pub fn try_unenroll_replica(
     _unenroll_replica(deps, replica_addr)
 }
 
+pub fn try_owner_enroll_replica(
+    mut deps: DepsMut,
+    info: MessageInfo,
+    domain: u32,
+    replica: String,
+) -> Result<Response, ContractError> {
+    ownable::only_owner(deps.as_ref(), info)?;
+
+    let replica_addr = deps.api.addr_validate(&replica)?;
+
+    // Unenroll existing
+    _unenroll_replica(deps.branch(), replica_addr.clone())?;
+
+    // Enroll new
+    _enroll_replica(deps, domain, replica_addr)
+}
+
+pub fn try_owner_unenroll_replica(
+    mut deps: DepsMut,
+    info: MessageInfo,
+    replica: String,
+) -> Result<Response, ContractError> {
+    ownable::only_owner(deps.as_ref(), info)?;
+
+    let replica_addr = deps.api.addr_validate(&replica)?;
+
+    _unenroll_replica(deps.branch(), replica_addr.clone())
+}
+
+pub fn try_set_watcher_permission(
+    deps: DepsMut,
+    info: MessageInfo,
+    domain: u32,
+    watcher: H160,
+    access: bool,
+) -> Result<Response, ContractError> {
+    ownable::only_owner(deps.as_ref(), info)?;
+
+    let watcher_domain_hash = watcher_domain_hash(watcher, domain);
+    WATCHER_PERMISSIONS.save(deps.storage, watcher_domain_hash.as_bytes(), &access)?;
+
+    Ok(Response::new().add_event(
+        Event::new("WatcherPermissionSet")
+            .add_attribute("domain", domain.to_string())
+            .add_attribute("watcher", format!("{:?}", watcher))
+            .add_attribute("permission", (access as u32).to_string()),
+    ))
+}
+
+pub fn try_set_home(
+    deps: DepsMut,
+    info: MessageInfo,
+    home: String,
+) -> Result<Response, ContractError> {
+    ownable::only_owner(deps.as_ref(), info)?;
+
+    let home_addr = deps.api.addr_validate(&home)?;
+
+    HOME.save(deps.storage, &home_addr)?;
+
+    Ok(Response::new().add_event(Event::new("SetHome").add_attribute("new_home", &home)))
+}
+
+pub fn _enroll_replica(
+    deps: DepsMut,
+    domain: u32,
+    replica: Addr,
+) -> Result<Response, ContractError> {
+    DOMAIN_TO_REPLICA.save(deps.storage, domain, &replica)?;
+    REPLICA_TO_DOMAIN.save(deps.storage, replica.clone(), &domain)?;
+
+    Ok(Response::new().add_event(
+        Event::new("ReplicaEnrolled")
+            .add_attribute("domain", domain.to_string())
+            .add_attribute("replica", replica.to_string()),
+    ))
+}
+
 pub fn _unenroll_replica(deps: DepsMut, replica: Addr) -> Result<Response, ContractError> {
     let domain = REPLICA_TO_DOMAIN.load(deps.storage, replica.clone())?;
     DOMAIN_TO_REPLICA.save(deps.storage, domain, &Addr::unchecked("0x0"))?;
@@ -134,7 +226,7 @@ pub fn recover_from_watcher_sig(
     Ok(sig.recover(RecoveryMessage::Data(digest.as_bytes().to_vec()))?)
 }
 
-pub fn watcher_domain_hash(deps: Deps, watcher: H160, domain: u32) -> H256 {
+pub fn watcher_domain_hash(watcher: H160, domain: u32) -> H256 {
     let mut buf = watcher.to_fixed_bytes().to_vec();
     buf.append(&mut domain.to_be_bytes().to_vec());
     keccak256(buf).into()
@@ -178,7 +270,7 @@ pub fn query_watcher_permission(
     watcher: H160,
     domain: u32,
 ) -> StdResult<WatcherPermissionResponse> {
-    let watcher_domain_hash = watcher_domain_hash(deps.clone(), watcher, domain);
+    let watcher_domain_hash = watcher_domain_hash(watcher, domain);
     let has_permission = WATCHER_PERMISSIONS
         .may_load(deps.storage, watcher_domain_hash.as_bytes())?
         .unwrap_or(false);

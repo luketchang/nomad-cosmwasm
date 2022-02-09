@@ -21,7 +21,7 @@ pub enum ExecuteMsg {
     },
     SetWatcherPermission {
         domain: u32,
-        watcher: H256,
+        watcher: H160,
         access: bool,
     },
     SetHome {

@@ -576,8 +576,6 @@ mod tests {
     async fn accepts_valid_update() {
         let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
 
-        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
-
         let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
 
         let init_msg = InstantiateMsg {
