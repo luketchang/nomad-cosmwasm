@@ -1,4 +1,4 @@
-use ethers_core::types::{Address, Signature, H256};
+use ethers_core::types::{Address, Signature, H160, H256};
 use ethers_signers::{LocalWallet, Signer};
 use sha3::{digest::Update as DigestUpdate, Digest, Keccak256};
 
@@ -29,6 +29,10 @@ impl Updater {
             signer: wallet.clone(),
             address: wallet.address(),
         }
+    }
+
+    pub fn address(&self) -> H160 {
+        self.address.into()
     }
 
     fn domain_hash(&self) -> H256 {

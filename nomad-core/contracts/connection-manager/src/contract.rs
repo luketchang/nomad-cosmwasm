@@ -43,13 +43,15 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    match msg {
-        ExecuteMsg::UnenrollReplica {
-            domain,
-            updater,
-            signature,
-        } => try_unenroll_replica(deps, domain, updater, signature),
-    }
+    // match msg {
+    //     ExecuteMsg::UnenrollReplica {
+    //         domain,
+    //         updater,
+    //         signature,
+    //     } => try_unenroll_replica(deps, domain, updater, signature),
+    // }
+
+    Ok(Response::new())
 }
 
 pub fn try_unenroll_replica(
@@ -68,12 +70,10 @@ pub fn try_unenroll_replica(
     let replica_updater_resp: UpdaterResponse = deps
         .querier
         .query_wasm_smart(replica, &replica::QueryMsg::Updater {})?;
-    let replica_updater_addr = deps.api.addr_validate(&replica_updater_resp.updater)?;
+    let replica_updater = replica_updater_resp.updater;
 
-    let addr_length = CHAIN_ADDR_LENGTH_BYTES.load(deps.storage)?;
-    let provided_updater_addr = h256_to_n_byte_addr(deps.as_ref(), addr_length, updater);
-
-    if replica_updater_addr != provided_updater_addr {
+    let provided_updater_addr: H160 = updater.into();
+    if replica_updater != provided_updater_addr {
         return Err(ContractError::NotCurrentUpdater {
             address: provided_updater_addr.to_string(),
         });

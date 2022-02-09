@@ -36,6 +36,7 @@ cw2 = "0.11"
 schemars = "0.8"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0" }
+ethers-core = "0.6.2"
 
 ownable = { path = "../ownable", features = ["library"] }
 common = { path = "../../common" }

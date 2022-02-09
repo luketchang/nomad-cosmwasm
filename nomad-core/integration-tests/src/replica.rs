@@ -8,6 +8,7 @@ mod test {
     use cw_multi_test::Executor;
     use ethers_core::types::H256;
     use merkle::merkle_tree::{merkle_root_from_branch, Proof};
+    use test_utils::Updater;
 
     use crate::utils::helpers::{
         app_event_by_ty, instantiate_bad_recipient, instantiate_test_recipient,
@@ -17,17 +18,19 @@ mod test {
     const CHAIN_ADDR_LENGTH_BYTES: usize = 11; // e.g. "Contract #0".len()
     const REMOTE_DOMAIN: u32 = 1000;
     const LOCAL_DOMAIN: u32 = 2000;
-    const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
+    const UPDATER_PRIVKEY: &str =
+        "1111111111111111111111111111111111111111111111111111111111111111";
 
     #[test]
     fn proves_message() {
         let mut app = mock_app();
 
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let sender_string = h256_to_string(H256::zero());
 
         let owner = Addr::unchecked("owner");
         let sender = Addr::unchecked(&sender_string);
-        let updater_addr = Addr::unchecked(UPDATER_PUBKEY);
         let committed_root = H256::zero();
         let optimistic_seconds = 100;
 
@@ -38,7 +41,7 @@ mod test {
             CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
-            updater_addr,
+            updater.address(),
             committed_root,
             optimistic_seconds,
         );
@@ -80,11 +83,12 @@ mod test {
     fn rejects_invalid_message_proof() {
         let mut app = mock_app();
 
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let sender_string = h256_to_string(H256::zero());
 
         let owner = Addr::unchecked("owner");
         let sender = Addr::unchecked(&sender_string);
-        let updater_addr = Addr::unchecked(UPDATER_PUBKEY);
         let committed_root = H256::zero();
         let optimistic_seconds = 100;
 
@@ -95,7 +99,7 @@ mod test {
             CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
-            updater_addr,
+            updater.address(),
             committed_root,
             optimistic_seconds,
         );
@@ -136,11 +140,12 @@ mod test {
     fn processes_proved_message() {
         let mut app = mock_app();
 
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let sender_string = h256_to_string(H256::zero());
 
         let owner = Addr::unchecked("owner");
         let sender = Addr::unchecked(&sender_string);
-        let updater_addr = Addr::unchecked(UPDATER_PUBKEY);
         let committed_root = H256::zero();
         let optimistic_seconds = 100;
 
@@ -151,7 +156,7 @@ mod test {
             CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
-            updater_addr,
+            updater.address(),
             committed_root,
             optimistic_seconds,
         );
@@ -194,11 +199,12 @@ mod test {
     fn fails_to_process_unproved_message() {
         let mut app = mock_app();
 
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let sender_string = h256_to_string(H256::zero());
 
         let owner = Addr::unchecked("owner");
         let sender = Addr::unchecked(&sender_string);
-        let updater_addr = Addr::unchecked(UPDATER_PUBKEY);
         let committed_root = H256::zero();
         let optimistic_seconds = 100;
 
@@ -209,7 +215,7 @@ mod test {
             CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
-            updater_addr,
+            updater.address(),
             committed_root,
             optimistic_seconds,
         );
@@ -243,11 +249,12 @@ mod test {
     fn fails_to_process_message_to_wrong_destination() {
         let mut app = mock_app();
 
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let sender_string = h256_to_string(H256::zero());
 
         let owner = Addr::unchecked("owner");
         let sender = Addr::unchecked(&sender_string);
-        let updater_addr = Addr::unchecked(UPDATER_PUBKEY);
         let committed_root = H256::zero();
         let optimistic_seconds = 100;
 
@@ -258,7 +265,7 @@ mod test {
             CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
-            updater_addr,
+            updater.address(),
             committed_root,
             optimistic_seconds,
         );
@@ -292,11 +299,12 @@ mod test {
     fn processes_message_to_non_existent_recipient_addr() {
         let mut app = mock_app();
 
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let sender_string = h256_to_string(H256::zero());
 
         let owner = Addr::unchecked("owner");
         let sender = Addr::unchecked(&sender_string);
-        let updater_addr = Addr::unchecked(UPDATER_PUBKEY);
         let committed_root = H256::zero();
         let optimistic_seconds = 100;
 
@@ -307,7 +315,7 @@ mod test {
             CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
-            updater_addr,
+            updater.address(),
             committed_root,
             optimistic_seconds,
         );
@@ -346,11 +354,12 @@ mod test {
     fn processes_message_for_bad_recipient() {
         let mut app = mock_app();
 
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let sender_string = h256_to_string(H256::zero());
 
         let owner = Addr::unchecked("owner");
         let sender = Addr::unchecked(&sender_string);
-        let updater_addr = Addr::unchecked(UPDATER_PUBKEY);
         let committed_root = H256::zero();
         let optimistic_seconds = 100;
 
@@ -361,7 +370,7 @@ mod test {
             CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
-            updater_addr,
+            updater.address(),
             committed_root,
             optimistic_seconds,
         );
@@ -404,11 +413,12 @@ mod test {
     fn proves_and_processes_message() {
         let mut app = mock_app();
 
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let sender_string = h256_to_string(H256::zero());
 
         let owner = Addr::unchecked("owner");
         let sender = Addr::unchecked(&sender_string);
-        let updater_addr = Addr::unchecked(UPDATER_PUBKEY);
         let committed_root = H256::zero();
         let optimistic_seconds = 100;
 
@@ -419,7 +429,7 @@ mod test {
             CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
-            updater_addr,
+            updater.address(),
             committed_root,
             optimistic_seconds,
         );
@@ -483,11 +493,12 @@ mod test {
     fn proves_and_processes_fails_if_prove_fails() {
         let mut app = mock_app();
 
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let sender_string = h256_to_string(H256::zero());
 
         let owner = Addr::unchecked("owner");
         let sender = Addr::unchecked(&sender_string);
-        let updater_addr = Addr::unchecked(UPDATER_PUBKEY);
         let committed_root = H256::zero();
         let optimistic_seconds = 100;
 
@@ -498,7 +509,7 @@ mod test {
             CHAIN_ADDR_LENGTH_BYTES,
             LOCAL_DOMAIN,
             REMOTE_DOMAIN,
-            updater_addr,
+            updater.address(),
             committed_root,
             optimistic_seconds,
         );

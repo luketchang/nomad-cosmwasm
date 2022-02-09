@@ -6,7 +6,7 @@ use cosmwasm_std::{
     MessageInfo, Reply, ReplyOn, Response, StdResult, SubMsg, WasmMsg,
 };
 use cw2::set_contract_version;
-use ethers_core::types::H256;
+use ethers_core::types::{H160, H256};
 
 use crate::error::ContractError;
 use crate::state::{
@@ -32,7 +32,7 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     nomad_base::instantiate(deps.branch(), env, info, msg.clone().into())?;
 
-    CHAIN_ADDR_LENGTH_BYTES.save(deps.storage, &msg.CHAIN_ADDR_LENGTH_BYTES)?;
+    CHAIN_ADDR_LENGTH_BYTES.save(deps.storage, &msg.chain_addr_length_bytes)?;
     REMOTE_DOMAIN.save(deps.storage, &msg.remote_domain)?;
     OPTIMISTIC_SECONDS.save(deps.storage, &msg.optimistic_seconds)?;
     nomad_base::_set_committed_root(deps.branch(), msg.committed_root)?;
@@ -262,7 +262,7 @@ pub fn try_set_optimistic_timeout(
 pub fn try_set_updater(
     deps: DepsMut,
     info: MessageInfo,
-    updater: String,
+    updater: H160,
 ) -> Result<Response, ContractError> {
     ownable::only_owner(deps.as_ref(), info)?;
     Ok(nomad_base::_set_updater(deps, updater)?)
@@ -372,15 +372,17 @@ mod tests {
 
     #[test]
     fn proper_initialization() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            CHAIN_ADDR_LENGTH_BYTES: CHAIN_ADDR_LENGTH_BYTES,
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
             committed_root: H256::zero(),
             optimistic_seconds,
         };
@@ -414,7 +416,7 @@ mod tests {
         // Updater
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Updater {}).unwrap();
         let value: UpdaterResponse = from_binary(&res).unwrap();
-        assert_eq!(UPDATER_PUBKEY.to_owned(), value.updater);
+        assert_eq!(updater.address(), value.updater);
     }
 
     #[tokio::test]
@@ -426,10 +428,10 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            CHAIN_ADDR_LENGTH_BYTES: CHAIN_ADDR_LENGTH_BYTES,
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
             committed_root: H256::zero(),
             optimistic_seconds,
         };
@@ -465,10 +467,10 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            CHAIN_ADDR_LENGTH_BYTES: CHAIN_ADDR_LENGTH_BYTES,
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
             committed_root: H256::zero(),
             optimistic_seconds,
         };
@@ -521,6 +523,8 @@ mod tests {
 
     #[tokio::test]
     async fn rejects_invalid_updater_signature() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let not_updater: Updater = Updater::from_privkey(
             "2111111111111111111111111111111111111111111111111111111111111111",
             LOCAL_DOMAIN,
@@ -531,10 +535,10 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            CHAIN_ADDR_LENGTH_BYTES: CHAIN_ADDR_LENGTH_BYTES,
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
             committed_root: H256::zero(),
             optimistic_seconds,
         };
@@ -572,10 +576,10 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            CHAIN_ADDR_LENGTH_BYTES: CHAIN_ADDR_LENGTH_BYTES,
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
             committed_root: H256::zero(),
             optimistic_seconds,
         };
@@ -629,10 +633,10 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            CHAIN_ADDR_LENGTH_BYTES: CHAIN_ADDR_LENGTH_BYTES,
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
             committed_root: H256::zero(),
             optimistic_seconds,
         };

@@ -1,11 +1,11 @@
 use super::{merkle, nomad_base, ownable, queue};
-use ethers_core::types::H256;
+use ethers_core::types::{H160, H256};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InstantiateMsg {
     pub local_domain: u32,
-    pub updater: String,
+    pub updater: H160,
 }
 
 impl From<InstantiateMsg> for ownable::InstantiateMsg {
@@ -60,7 +60,7 @@ pub enum ExecuteMsg {
         signature: Vec<u8>,
     },
     SetUpdater {
-        updater: String,
+        updater: H160,
     },
     SetUpdaterManager {
         updater_manager: String,

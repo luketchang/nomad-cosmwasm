@@ -5,6 +5,7 @@ use cosmwasm_std::{
     ReplyOn, Response, StdResult, SubMsg, WasmMsg,
 };
 use cw2::set_contract_version;
+use ethers_core::types::H160;
 
 use crate::error::ContractError;
 use crate::state::{HOME, UPDATER};
@@ -23,8 +24,6 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    let updater = deps.api.addr_validate(&msg.updater)?;
-
     ownable::instantiate(
         deps.branch(),
         env.clone(),
@@ -33,7 +32,7 @@ pub fn instantiate(
     )?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    UPDATER.save(deps.storage, &updater)?;
+    UPDATER.save(deps.storage, &msg.updater)?;
 
     Ok(Response::new())
 }
@@ -81,12 +80,11 @@ pub fn try_set_home(
 pub fn try_set_updater(
     deps: DepsMut,
     info: MessageInfo,
-    updater: String,
+    updater: H160,
 ) -> Result<Response, ContractError> {
     ownable::only_owner(deps.as_ref(), info)?;
 
-    let updater_addr = deps.api.addr_validate(&updater.clone())?;
-    UPDATER.save(deps.storage, &updater_addr)?;
+    UPDATER.save(deps.storage, &updater)?;
 
     let home_addr = HOME.load(deps.storage)?;
 
@@ -108,7 +106,7 @@ pub fn try_set_updater(
     };
 
     Ok(Response::new()
-        .add_event(Event::new("SetUpdater").add_attribute("new_updater", updater))
+        .add_event(Event::new("SetUpdater").add_attribute("new_updater", format!("{:?}", updater)))
         .add_submessage(sub_msg))
 }
 
@@ -147,7 +145,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 pub fn query_updater(deps: Deps) -> StdResult<UpdaterResponse> {
-    let updater = UPDATER.load(deps.storage)?.to_string();
+    let updater = UPDATER.load(deps.storage)?;
     Ok(UpdaterResponse { updater })
 }
 
@@ -157,13 +155,13 @@ mod tests {
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
 
+    const UPDATER: H160 = H160::repeat_byte(3);
+
     #[test]
     fn proper_initialization() {
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
-        let msg = InstantiateMsg {
-            updater: "updater".to_owned(),
-        };
+        let msg = InstantiateMsg { updater: UPDATER };
         let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
@@ -172,7 +170,7 @@ mod tests {
         // Updater
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Updater {}).unwrap();
         let value: UpdaterResponse = from_binary(&res).unwrap();
-        assert_eq!("updater".to_owned(), value.updater);
+        assert_eq!(UPDATER, value.updater);
 
         // Owner
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();

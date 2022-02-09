@@ -7,7 +7,7 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use ethers_core::types::{RecoveryMessage, Signature, H160, H256};
 use sha3::{digest::Update, Digest, Keccak256};
-use std::{convert::TryFrom, str::FromStr};
+use std::convert::TryFrom;
 
 use crate::error::ContractError;
 use crate::state::{COMMITTED_ROOT, LOCAL_DOMAIN, STATE, UPDATER};
@@ -29,18 +29,16 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     ownable::instantiate(deps.branch(), env, info, msg.clone().into())?;
 
-    let updater = deps.api.addr_validate(&msg.updater)?;
-
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     LOCAL_DOMAIN.save(deps.storage, &msg.local_domain)?;
-    UPDATER.save(deps.storage, &updater)?;
+    UPDATER.save(deps.storage, &msg.updater)?;
     STATE.save(deps.storage, &States::Active)?;
     COMMITTED_ROOT.save(deps.storage, &H256::zero())?;
 
     Ok(Response::new()
         .add_attribute("method", "instantiate")
         .add_attribute("local_domain", msg.local_domain.to_string())
-        .add_attribute("updater", msg.updater))
+        .add_attribute("updater", format!("{:?}", msg.updater)))
 }
 
 pub fn not_failed(deps: Deps) -> Result<Response, ContractError> {
@@ -115,7 +113,7 @@ pub fn is_updater_signature(
 
     let sig = Signature::try_from(signature)?;
     let recovered_address = sig.recover(RecoveryMessage::Data(digest.as_bytes().to_vec()))?;
-    Ok(H160::from_str(&updater).unwrap() == recovered_address)
+    Ok(updater == recovered_address)
 }
 
 pub fn _set_failed(deps: DepsMut) -> Result<Response, ContractError> {
@@ -123,11 +121,11 @@ pub fn _set_failed(deps: DepsMut) -> Result<Response, ContractError> {
     Ok(Response::new())
 }
 
-pub fn _set_updater(deps: DepsMut, updater: String) -> Result<Response, ContractError> {
-    let updater_addr = deps.api.addr_validate(&updater)?;
-    UPDATER.save(deps.storage, &updater_addr)?;
+pub fn _set_updater(deps: DepsMut, updater: H160) -> Result<Response, ContractError> {
+    UPDATER.save(deps.storage, &updater)?;
 
-    Ok(Response::new().add_event(Event::new("SetUpdater").add_attribute("new_updater", updater)))
+    Ok(Response::new()
+        .add_event(Event::new("SetUpdater").add_attribute("new_updater", format!("{:?}", updater))))
 }
 
 pub fn _set_committed_root(deps: DepsMut, root: H256) -> Result<Response, ContractError> {
@@ -177,7 +175,7 @@ pub fn query_state(deps: Deps) -> StdResult<StateResponse> {
 }
 
 pub fn query_updater(deps: Deps) -> StdResult<UpdaterResponse> {
-    let updater = UPDATER.load(deps.storage)?.to_string();
+    let updater = UPDATER.load(deps.storage)?;
     Ok(UpdaterResponse { updater })
 }
 
@@ -200,11 +198,13 @@ mod tests {
 
     #[test]
     fn proper_initialization() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -229,7 +229,7 @@ mod tests {
         // Updater
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Updater {}).unwrap();
         let value: UpdaterResponse = from_binary(&res).unwrap();
-        assert_eq!(UPDATER_PUBKEY.to_owned(), value.updater);
+        assert_eq!(updater.address(), value.updater);
     }
 
     #[tokio::test]
@@ -240,7 +240,7 @@ mod tests {
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -263,6 +263,8 @@ mod tests {
 
     #[tokio::test]
     async fn rejects_invalid_updater_signature() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let not_updater_privkey =
             "2111111111111111111111111111111111111111111111111111111111111111";
         let not_updater: Updater = Updater::from_privkey(not_updater_privkey, LOCAL_DOMAIN);
@@ -271,7 +273,7 @@ mod tests {
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -300,7 +302,7 @@ mod tests {
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -334,7 +336,7 @@ mod tests {
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
