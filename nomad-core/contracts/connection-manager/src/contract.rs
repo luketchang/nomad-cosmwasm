@@ -29,7 +29,7 @@ pub fn instantiate(
     mut deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    msg: InstantiateMsg,
+    _msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     ownable::instantiate(deps.branch(), env, info, common::ownable::InstantiateMsg {})?;
 
@@ -266,7 +266,7 @@ pub fn recover_from_watcher_sig(
     Ok(sig.recover(RecoveryMessage::Data(digest.as_bytes().to_vec()))?)
 }
 
-pub fn watcher_domain_hash(deps: Deps, watcher: H160, domain: u32) -> H256 {
+pub fn watcher_domain_hash(watcher: H160, domain: u32) -> H256 {
     let mut buf = watcher.to_fixed_bytes().to_vec();
     buf.append(&mut domain.to_be_bytes().to_vec());
     keccak256(buf).into()
