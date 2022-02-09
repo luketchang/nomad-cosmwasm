@@ -1,12 +1,15 @@
 use common::nomad_base::{HomeDomainHashResponse, LocalDomainResponse, UpdaterResponse};
-use common::{h256_to_n_byte_addr, home, replica};
+use common::{addr_to_h256, h256_to_n_byte_addr, home, replica};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{
+    to_binary, Addr, Binary, Deps, DepsMut, Env, Event, MessageInfo, Response, StdResult,
+};
 use cw2::set_contract_version;
 use ethers_core::types::{RecoveryMessage, Signature, H160, H256};
 use ethers_core::utils::keccak256;
 use sha3::{digest::Update, Digest, Keccak256};
+use std::convert::TryFrom;
 
 use crate::error::ContractError;
 use crate::state::{
@@ -56,9 +59,11 @@ pub fn try_unenroll_replica(
     signature: Vec<u8>,
 ) -> Result<Response, ContractError> {
     let replica = query_domain_to_replica(deps.as_ref(), domain)?.replica;
-    if &replica == "0x0" {
+    let replica_addr = deps.api.addr_validate(&replica)?;
+    if replica_addr == Addr::unchecked("0x0") {
         return Err(ContractError::ReplicaNotExists { domain });
     }
+    let replica_h256 = addr_to_h256(replica_addr.clone());
 
     let replica_updater_resp: UpdaterResponse = deps
         .querier
@@ -69,13 +74,36 @@ pub fn try_unenroll_replica(
     let provided_updater_addr = h256_to_n_byte_addr(deps.as_ref(), addr_length, updater);
 
     if replica_updater_addr != provided_updater_addr {
-        return Err(ContractError::NotCurrentUpdater { address: provided_updater_addr.to_string() });
+        return Err(ContractError::NotCurrentUpdater {
+            address: provided_updater_addr.to_string(),
+        });
     }
 
-    let watcher = recover_from_watcher_sig(deps.as_ref(), domain, replica, updater, &signature)?;
-    let watcher_perms_key = watcher_domain_hash(deps.as_ref(), watcher, domain);
+    let watcher =
+        recover_from_watcher_sig(deps.as_ref(), domain, replica_h256, updater, &signature)?;
+    let watcher_permission =
+        query_watcher_permission(deps.as_ref(), watcher, domain)?.has_permission;
+    if !watcher_permission {
+        return Err(ContractError::NotWatcherPermission {
+            watcher,
+            replica: replica_h256,
+            domain,
+        });
+    }
 
-    Ok(Response::new())
+    _unenroll_replica(deps, replica_addr)
+}
+
+pub fn _unenroll_replica(deps: DepsMut, replica: Addr) -> Result<Response, ContractError> {
+    let domain = REPLICA_TO_DOMAIN.load(deps.storage, replica.clone())?;
+    DOMAIN_TO_REPLICA.save(deps.storage, domain, &Addr::unchecked("0x0"))?;
+    REPLICA_TO_DOMAIN.save(deps.storage, replica.clone(), &0u32)?;
+
+    Ok(Response::new().add_event(
+        Event::new("ReplicaUnenrolled")
+            .add_attribute("domain", domain.to_string())
+            .add_attribute("replica", replica.to_string()),
+    ))
 }
 
 pub fn recover_from_watcher_sig(
@@ -96,7 +124,7 @@ pub fn recover_from_watcher_sig(
     let digest = H256::from_slice(
         Keccak256::new()
             .chain(home_domain_hash)
-            .chain(domain)
+            .chain(domain.to_be_bytes())
             .chain(updater)
             .finalize()
             .as_slice(),
@@ -106,11 +134,10 @@ pub fn recover_from_watcher_sig(
     Ok(sig.recover(RecoveryMessage::Data(digest.as_bytes().to_vec()))?)
 }
 
-pub fn watcher_domain_hash(deps: Deps, watcher: H256, domain: u32) -> H256 {
-    let addr_length = CHAIN_ADDR_LENGTH_BYTES.load(deps.storage)?;
-    let watcher_domain_concat =
-        h256_to_n_byte_addr(deps, addr_length, watcher).to_string() + &domain.to_string();
-    keccak256(watcher_domain_concat.as_bytes()).into()
+pub fn watcher_domain_hash(deps: Deps, watcher: H160, domain: u32) -> H256 {
+    let mut buf = watcher.to_fixed_bytes().to_vec();
+    buf.append(&mut domain.to_be_bytes().to_vec());
+    keccak256(buf).into()
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -148,7 +175,7 @@ pub fn query_replica_to_domain(deps: Deps, replica: String) -> StdResult<Replica
 
 pub fn query_watcher_permission(
     deps: Deps,
-    watcher: H256,
+    watcher: H160,
     domain: u32,
 ) -> StdResult<WatcherPermissionResponse> {
     let watcher_domain_hash = watcher_domain_hash(deps.clone(), watcher, domain);

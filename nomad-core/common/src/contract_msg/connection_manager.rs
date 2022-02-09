@@ -1,4 +1,4 @@
-use ethers_core::types::H256;
+use ethers_core::types::{H160, H256};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -38,7 +38,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     DomainToReplica { domain: u32 },
     ReplicaToDomain { replica: String },
-    WatcherPermission { watcher: H256, domain: u32 },
+    WatcherPermission { watcher: H160, domain: u32 },
     IsReplica { replica: String },
     LocalDomain {},
     Owner {},
