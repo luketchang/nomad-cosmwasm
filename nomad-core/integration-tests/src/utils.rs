@@ -82,6 +82,27 @@ pub mod helpers {
         .unwrap()
     }
 
+    pub(crate) fn instantiate_connection_manager(
+        app: &mut App,
+        owner: Addr,
+        chain_addr_length_bytes: usize,
+    ) -> Addr {
+        let code_id = store_connection_manager_code(app);
+        let init_msg = common::connection_manager::InstantiateMsg {
+            chain_addr_length_bytes,
+        };
+
+        app.instantiate_contract(
+            code_id,
+            owner,
+            &init_msg,
+            &[],
+            String::from("CONNECTION_MANAGER"),
+            None,
+        )
+        .unwrap()
+    }
+
     pub(crate) fn instantiate_test_recipient(app: &mut App, deployer: Addr) -> Addr {
         let code_id = store_test_recipient_code(app);
         let init_msg = common::test::test_recipient::InstantiateMsg {};
@@ -149,6 +170,16 @@ pub mod helpers {
         );
 
         app.store_code(updater_manager_contract)
+    }
+
+    pub(crate) fn store_connection_manager_code(app: &mut App) -> u64 {
+        let connection_manager_contract = Box::new(ContractWrapper::new_with_empty(
+            connection_manager::contract::execute,
+            connection_manager::contract::instantiate,
+            connection_manager::contract::query,
+        ));
+
+        app.store_code(connection_manager_contract)
     }
 
     pub(crate) fn store_test_recipient_code(app: &mut App) -> u64 {

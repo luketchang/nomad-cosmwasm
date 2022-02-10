@@ -29,10 +29,13 @@ pub fn instantiate(
     mut deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    _msg: InstantiateMsg,
+    msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     ownable::instantiate(deps.branch(), env, info, common::ownable::InstantiateMsg {})?;
+
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    CHAIN_ADDR_LENGTH_BYTES.save(deps.storage, &msg.chain_addr_length_bytes);
+
     Ok(Response::new())
 }
 
@@ -94,7 +97,8 @@ pub fn try_unenroll_replica(
     }
 
     let watcher =
-        recover_from_watcher_sig(deps.as_ref(), domain, replica_h256, updater, &signature)?;
+        recover_watcher_from_sig(deps.as_ref(), domain, replica_h256, updater, &signature)?;
+
     let watcher_permission =
         query_watcher_permission(deps.as_ref(), watcher, domain)?.has_permission;
     if !watcher_permission {
@@ -200,7 +204,7 @@ pub fn _unenroll_replica(deps: DepsMut, replica: Addr) -> Result<Response, Contr
     ))
 }
 
-pub fn recover_from_watcher_sig(
+pub fn recover_watcher_from_sig(
     deps: Deps,
     domain: u32,
     replica: H256,

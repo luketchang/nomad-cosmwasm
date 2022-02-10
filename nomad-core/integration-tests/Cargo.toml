@@ -16,6 +16,7 @@ ethers-signers = "0.6.2"
 test-utils = { path = "../test-utils" }
 home = { path = "../contracts/home" }
 updater-manager = { path = "../contracts/updater-manager" }
+connection-manager = { path = "../contracts/connection-manager" }
 merkle = { path = "../contracts/merkle" }
 test-replica = { path = "../contracts/test/test-replica" }
 test-recipient = { path = "../contracts/test/test-recipient" }

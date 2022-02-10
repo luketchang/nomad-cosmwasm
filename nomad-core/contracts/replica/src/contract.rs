@@ -1,3 +1,4 @@
+use common::nomad_base::HomeDomainHashResponse;
 use common::{h256_to_n_byte_addr, Decode, HandleExecuteMsg, MessageStatus, NomadMessage};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
@@ -304,12 +305,19 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::RemoteDomain {} => to_binary(&query_remote_domain(deps)?),
         QueryMsg::CommittedRoot {} => to_binary(&nomad_base::query_committed_root(deps)?),
-        QueryMsg::HomeDomainHash {} => to_binary(&nomad_base::query_home_domain_hash(deps)?),
+        QueryMsg::HomeDomainHash {} => to_binary(&query_home_domain_hash(deps)?),
         QueryMsg::LocalDomain {} => to_binary(&nomad_base::query_local_domain(deps)?),
         QueryMsg::State {} => to_binary(&nomad_base::query_state(deps)?),
         QueryMsg::Updater {} => to_binary(&nomad_base::query_updater(deps)?),
         QueryMsg::Owner {} => to_binary(&ownable::query_owner(deps)?),
     }
+}
+
+pub fn query_home_domain_hash(deps: Deps) -> StdResult<HomeDomainHashResponse> {
+    let domain = REMOTE_DOMAIN.load(deps.storage)?;
+    Ok(HomeDomainHashResponse {
+        home_domain_hash: nomad_base::domain_hash(domain),
+    })
 }
 
 pub fn query_acceptable_root(

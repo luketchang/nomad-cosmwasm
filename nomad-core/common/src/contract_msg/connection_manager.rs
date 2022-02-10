@@ -2,7 +2,9 @@ use ethers_core::types::{H160, H256};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct InstantiateMsg {}
+pub struct InstantiateMsg {
+    pub chain_addr_length_bytes: usize,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]

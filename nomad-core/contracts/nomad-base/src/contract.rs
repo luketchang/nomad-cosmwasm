@@ -116,6 +116,16 @@ pub fn is_updater_signature(
     Ok(updater == recovered_address)
 }
 
+pub fn domain_hash(domain: u32) -> H256 {
+    H256::from_slice(
+        Keccak256::new()
+            .chain(domain.to_be_bytes())
+            .chain("NOMAD".as_bytes())
+            .finalize()
+            .as_slice(),
+    )
+}
+
 pub fn _set_failed(deps: DepsMut) -> Result<Response, ContractError> {
     STATE.save(deps.storage, &States::Failed)?;
     Ok(Response::new())
@@ -153,13 +163,7 @@ pub fn query_committed_root(deps: Deps) -> StdResult<CommittedRootResponse> {
 
 pub fn query_home_domain_hash(deps: Deps) -> StdResult<HomeDomainHashResponse> {
     let domain = LOCAL_DOMAIN.load(deps.storage)?;
-    let home_domain_hash = H256::from_slice(
-        Keccak256::new()
-            .chain(domain.to_be_bytes())
-            .chain("NOMAD".as_bytes())
-            .finalize()
-            .as_slice(),
-    );
+    let home_domain_hash = domain_hash(domain);
 
     Ok(HomeDomainHashResponse { home_domain_hash })
 }
