@@ -29,7 +29,7 @@ pub fn instantiate(
     mut deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    _msg: InstantiateMsg,
+    msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     ownable::instantiate(deps.branch(), env, info, common::ownable::InstantiateMsg {})?;
 
