@@ -320,6 +320,7 @@ mod tests {
     use cosmwasm_std::{coins, from_binary};
     use ethers_signers::{LocalWallet, Signer};
 
+    const CHAIN_ADDR_LENGTH_BYTES: usize = 42;
     const REPLICA_DOMAIN: u32 = 2000;
     const WATCHER_PRIVKEY: &str =
         "1111111111111111111111111111111111111111111111111111111111111111";
@@ -328,7 +329,9 @@ mod tests {
     fn proper_initialization() {
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
-        let msg = InstantiateMsg {};
+        let msg = InstantiateMsg {
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
+        };
         let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
@@ -349,7 +352,9 @@ mod tests {
     fn only_owner_restricts_access() {
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
-        let msg = InstantiateMsg {};
+        let msg = InstantiateMsg {
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
+        };
         let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
@@ -368,7 +373,9 @@ mod tests {
     fn owner_sets_home() {
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
-        let msg = InstantiateMsg {};
+        let msg = InstantiateMsg {
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
+        };
         let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
@@ -390,7 +397,9 @@ mod tests {
     fn onwer_enrolls_and_unenrolls_replica() {
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
-        let msg = InstantiateMsg {};
+        let msg = InstantiateMsg {
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
+        };
         let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
@@ -472,7 +481,9 @@ mod tests {
 
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
-        let msg = InstantiateMsg {};
+        let msg = InstantiateMsg {
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
+        };
         let info = mock_info("owner", &coins(100, "earth"));
 
         let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
