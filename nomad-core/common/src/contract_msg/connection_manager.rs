@@ -20,8 +20,8 @@ pub enum ExecuteMsg {
         replica: String,
     },
     SetWatcherPermission {
-        domain: u32,
         watcher: H160,
+        domain: u32,
         access: bool,
     },
     SetHome {
@@ -36,12 +36,18 @@ pub enum ExecuteMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
+    Home {},
     DomainToReplica { domain: u32 },
     ReplicaToDomain { replica: String },
     WatcherPermission { watcher: H160, domain: u32 },
     IsReplica { replica: String },
     LocalDomain {},
     Owner {},
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct HomeResponse {
+    pub home: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

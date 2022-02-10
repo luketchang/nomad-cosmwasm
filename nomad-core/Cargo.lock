@@ -321,11 +321,14 @@ dependencies = [
  "cw-storage-plus 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cw2",
  "ethers-core",
+ "ethers-signers",
  "ownable",
  "schemars",
  "serde",
  "sha3 0.10.0",
+ "test-utils",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]

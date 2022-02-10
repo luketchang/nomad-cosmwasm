@@ -16,7 +16,7 @@ use crate::state::{
     CHAIN_ADDR_LENGTH_BYTES, DOMAIN_TO_REPLICA, HOME, REPLICA_TO_DOMAIN, WATCHER_PERMISSIONS,
 };
 use common::connection_manager::{
-    DomainToReplicaResponse, ExecuteMsg, InstantiateMsg, IsReplicaResponse, QueryMsg,
+    DomainToReplicaResponse, ExecuteMsg, HomeResponse, InstantiateMsg, IsReplicaResponse, QueryMsg,
     ReplicaToDomainResponse, WatcherPermissionResponse,
 };
 
@@ -56,10 +56,10 @@ pub fn execute(
             try_owner_unenroll_replica(deps, info, replica)
         }
         ExecuteMsg::SetWatcherPermission {
-            domain,
             watcher,
+            domain,
             access,
-        } => try_set_watcher_permission(deps, info, domain, watcher, access),
+        } => try_set_watcher_permission(deps, info, watcher, domain, access),
         ExecuteMsg::SetHome { home } => try_set_home(deps, info, home),
         ExecuteMsg::RenounceOwnership {} => Ok(ownable::try_renounce_ownership(deps, info)?),
         ExecuteMsg::TransferOwnership { new_owner } => {
@@ -140,8 +140,8 @@ pub fn try_owner_unenroll_replica(
 pub fn try_set_watcher_permission(
     deps: DepsMut,
     info: MessageInfo,
-    domain: u32,
     watcher: H160,
+    domain: u32,
     access: bool,
 ) -> Result<Response, ContractError> {
     ownable::only_owner(deps.as_ref(), info)?;
@@ -187,7 +187,9 @@ pub fn _enroll_replica(
 }
 
 pub fn _unenroll_replica(deps: DepsMut, replica: Addr) -> Result<Response, ContractError> {
-    let domain = REPLICA_TO_DOMAIN.load(deps.storage, replica.clone())?;
+    let domain = REPLICA_TO_DOMAIN
+        .may_load(deps.storage, replica.clone())?
+        .unwrap_or_default();
     DOMAIN_TO_REPLICA.save(deps.storage, domain, &Addr::unchecked("0x0"))?;
     REPLICA_TO_DOMAIN.save(deps.storage, replica.clone(), &0u32)?;
 
@@ -235,6 +237,7 @@ pub fn watcher_domain_hash(watcher: H160, domain: u32) -> H256 {
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
+        QueryMsg::Home {} => to_binary(&query_home(deps)?),
         QueryMsg::DomainToReplica { domain } => to_binary(&query_domain_to_replica(deps, domain)?),
         QueryMsg::ReplicaToDomain { replica } => {
             to_binary(&query_replica_to_domain(deps, replica)?)
@@ -246,6 +249,15 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::LocalDomain {} => to_binary(&query_local_domain(deps)?),
         QueryMsg::Owner {} => to_binary(&ownable::query_owner(deps)?),
     }
+}
+
+pub fn query_home(deps: Deps) -> StdResult<HomeResponse> {
+    let home = HOME
+        .may_load(deps.storage)?
+        .unwrap_or(Addr::unchecked("0x0"));
+    Ok(HomeResponse {
+        home: home.to_string(),
+    })
 }
 
 pub fn query_domain_to_replica(deps: Deps, domain: u32) -> StdResult<DomainToReplicaResponse> {
@@ -283,7 +295,7 @@ pub fn query_is_replica(deps: Deps, replica: String) -> StdResult<IsReplicaRespo
     let is_replica = REPLICA_TO_DOMAIN
         .may_load(deps.storage, replica_addr)?
         .unwrap_or_default()
-        == 0;
+        != 0;
     Ok(IsReplicaResponse { is_replica })
 }
 
@@ -302,6 +314,11 @@ mod tests {
     use common::ownable::OwnerResponse;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
+    use ethers_signers::{LocalWallet, Signer};
+
+    const REPLICA_DOMAIN: u32 = 2000;
+    const WATCHER_PRIVKEY: &str =
+        "1111111111111111111111111111111111111111111111111111111111111111";
 
     #[test]
     fn proper_initialization() {
@@ -317,5 +334,178 @@ mod tests {
         let owner_res = query(deps.as_ref(), mock_env(), QueryMsg::Owner {}).unwrap();
         let value: OwnerResponse = from_binary(&owner_res).unwrap();
         assert_eq!("owner", value.owner);
+
+        // Home 0x0
+        let home_res = query(deps.as_ref(), mock_env(), QueryMsg::Home {}).unwrap();
+        let value: HomeResponse = from_binary(&home_res).unwrap();
+        assert_eq!("0x0", value.home);
+    }
+
+    #[test]
+    fn only_owner_restricts_access() {
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
+
+        let msg = InstantiateMsg {};
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        let not_owner_info = mock_info("not_owner", &coins(100, "earth"));
+        let msg = ExecuteMsg::SetHome {
+            home: "home".to_owned(),
+        };
+        let res = execute(deps.as_mut(), mock_env(), not_owner_info, msg);
+        assert!(res.is_err());
+        assert!(res.err().unwrap().to_string().contains("Unauthorized"));
+    }
+
+    #[test]
+    fn owner_sets_home() {
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
+
+        let msg = InstantiateMsg {};
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Owner executes set home
+        let msg = ExecuteMsg::SetHome {
+            home: "home".to_owned(),
+        };
+        execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Check home is now "home"
+        let home_res = query(deps.as_ref(), mock_env(), QueryMsg::Home {}).unwrap();
+        let value: HomeResponse = from_binary(&home_res).unwrap();
+        assert_eq!("home", value.home);
+    }
+
+    #[test]
+    fn onwer_enrolls_and_unenrolls_replica() {
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
+
+        let msg = InstantiateMsg {};
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        let replica_addr = Addr::unchecked("replica");
+
+        // Check replica not already enrolled
+        let msg = QueryMsg::IsReplica {
+            replica: replica_addr.to_string(),
+        };
+        let res = query(deps.as_ref(), mock_env(), msg).unwrap();
+        let value: IsReplicaResponse = from_binary(&res).unwrap();
+        assert!(!value.is_replica);
+
+        // Owner enrolls replica
+        let msg = ExecuteMsg::OwnerEnrollReplica {
+            domain: REPLICA_DOMAIN,
+            replica: replica_addr.to_string(),
+        };
+        execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+
+        // Check replica enrolled
+        let res = query(
+            deps.as_ref(),
+            mock_env(),
+            QueryMsg::DomainToReplica {
+                domain: REPLICA_DOMAIN,
+            },
+        )
+        .unwrap();
+        let value: DomainToReplicaResponse = from_binary(&res).unwrap();
+        assert_eq!("replica", value.replica);
+
+        let res = query(
+            deps.as_ref(),
+            mock_env(),
+            QueryMsg::ReplicaToDomain {
+                replica: replica_addr.to_string(),
+            },
+        )
+        .unwrap();
+        let value: ReplicaToDomainResponse = from_binary(&res).unwrap();
+        assert_eq!(2000, value.domain);
+
+        // Owner unenrolls replica
+        let msg = ExecuteMsg::OwnerUnenrollReplica {
+            replica: replica_addr.to_string(),
+        };
+        execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+
+        // Check replica unenrolled
+        let res = query(
+            deps.as_ref(),
+            mock_env(),
+            QueryMsg::DomainToReplica {
+                domain: REPLICA_DOMAIN,
+            },
+        )
+        .unwrap();
+        let value: DomainToReplicaResponse = from_binary(&res).unwrap();
+        assert_eq!("0x0", value.replica);
+
+        let res = query(
+            deps.as_ref(),
+            mock_env(),
+            QueryMsg::ReplicaToDomain {
+                replica: replica_addr.to_string(),
+            },
+        )
+        .unwrap();
+        let value: ReplicaToDomainResponse = from_binary(&res).unwrap();
+        assert_eq!(0, value.domain);
+    }
+
+    #[test]
+    fn owner_sets_watcher_permissions() {
+        let watcher: LocalWallet = WATCHER_PRIVKEY.parse().unwrap();
+
+        let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
+
+        let msg = InstantiateMsg {};
+        let info = mock_info("owner", &coins(100, "earth"));
+
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // Watcher starts with no access
+        let res = query(
+            deps.as_ref(),
+            mock_env(),
+            QueryMsg::WatcherPermission {
+                watcher: watcher.address(),
+                domain: REPLICA_DOMAIN,
+            },
+        )
+        .unwrap();
+        let value: WatcherPermissionResponse = from_binary(&res).unwrap();
+        assert!(!value.has_permission);
+
+        // Set watcher permission
+        let msg = ExecuteMsg::SetWatcherPermission {
+            watcher: watcher.address(),
+            domain: REPLICA_DOMAIN,
+            access: true,
+        };
+        execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+
+        // Check watcher has permission
+        let res = query(
+            deps.as_ref(),
+            mock_env(),
+            QueryMsg::WatcherPermission {
+                watcher: watcher.address(),
+                domain: REPLICA_DOMAIN,
+            },
+        )
+        .unwrap();
+        let value: WatcherPermissionResponse = from_binary(&res).unwrap();
+        assert!(value.has_permission);
     }
 }
