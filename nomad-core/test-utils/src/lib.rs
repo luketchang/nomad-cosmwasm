@@ -3,6 +3,9 @@ use cosmwasm_std::{Event, Response};
 mod updater_utils;
 pub use updater_utils::*;
 
+mod watcher_utils;
+pub use watcher_utils::*;
+
 mod merkle_utils;
 pub use merkle_utils::*;
 

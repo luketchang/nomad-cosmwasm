@@ -1,15 +1,15 @@
 use crate::nomad_base;
-use ethers_core::types::H256;
+use ethers_core::types::{H160, H256};
 use serde::{Deserialize, Serialize};
 
 use crate::MessageStatus;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InstantiateMsg {
-    pub chain_addr_length: usize,
+    pub chain_addr_length_bytes: usize,
     pub local_domain: u32,
     pub remote_domain: u32,
-    pub updater: String,
+    pub updater: H160,
     pub committed_root: H256,
     pub optimistic_seconds: u64,
 }
@@ -58,7 +58,7 @@ pub enum ExecuteMsg {
         optimistic_seconds: u64,
     },
     SetUpdater {
-        updater: String,
+        updater: H160,
     },
     RenounceOwnership {},
     TransferOwnership {

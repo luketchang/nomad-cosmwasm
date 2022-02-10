@@ -1,5 +1,5 @@
 use crate::ownable;
-use ethers_core::types::H256;
+use ethers_core::types::{H160, H256};
 use serde::{Deserialize, Serialize};
 
 use crate::States;
@@ -7,7 +7,7 @@ use crate::States;
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InstantiateMsg {
     pub local_domain: u32,
-    pub updater: String,
+    pub updater: H160,
 }
 
 impl From<InstantiateMsg> for ownable::InstantiateMsg {
@@ -69,5 +69,5 @@ pub struct StateResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct UpdaterResponse {
     /// Updater address
-    pub updater: String,
+    pub updater: H160,
 }

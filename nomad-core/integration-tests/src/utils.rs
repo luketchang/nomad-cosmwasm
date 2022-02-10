@@ -3,7 +3,7 @@ pub mod helpers {
     use cosmwasm_std::testing::{mock_env, MockApi, MockStorage};
     use cosmwasm_std::{Addr, Event};
     use cw_multi_test::{App, AppBuilder, AppResponse, BankKeeper, ContractWrapper, Executor};
-    use ethers_core::types::H256;
+    use ethers_core::types::{H160, H256};
 
     pub(crate) fn mock_app() -> App {
         let env = mock_env();
@@ -23,13 +23,13 @@ pub mod helpers {
         app: &mut App,
         owner: Addr,
         local_domain: u32,
-        updater: Addr,
+        updater: H160,
     ) -> Addr {
         let code_id = store_home_code(app);
 
         let init_msg = common::home::InstantiateMsg {
             local_domain,
-            updater: updater.to_string(),
+            updater,
         };
 
         app.instantiate_contract(code_id, owner, &init_msg, &[], String::from("HOME"), None)
@@ -39,19 +39,19 @@ pub mod helpers {
     pub(crate) fn instantiate_test_replica(
         app: &mut App,
         owner: Addr,
-        chain_addr_length: usize,
+        chain_addr_length_bytes: usize,
         local_domain: u32,
         remote_domain: u32,
-        updater: Addr,
+        updater: H160,
         committed_root: H256,
         optimistic_seconds: u64,
     ) -> Addr {
         let code_id = store_test_replica_code(app);
         let init_msg = common::replica::InstantiateMsg {
-            chain_addr_length,
+            chain_addr_length_bytes,
             local_domain,
             remote_domain,
-            updater: updater.to_string(),
+            updater,
             committed_root,
             optimistic_seconds,
         };
@@ -67,11 +67,9 @@ pub mod helpers {
         .unwrap()
     }
 
-    pub(crate) fn instantiate_updater_manager(app: &mut App, owner: Addr, updater: Addr) -> Addr {
+    pub(crate) fn instantiate_updater_manager(app: &mut App, owner: Addr, updater: H160) -> Addr {
         let code_id = store_updater_manager_code(app);
-        let init_msg = common::updater_manager::InstantiateMsg {
-            updater: updater.to_string(),
-        };
+        let init_msg = common::updater_manager::InstantiateMsg { updater };
 
         app.instantiate_contract(
             code_id,
@@ -79,6 +77,27 @@ pub mod helpers {
             &init_msg,
             &[],
             String::from("UPDATER_MANAGER"),
+            None,
+        )
+        .unwrap()
+    }
+
+    pub(crate) fn instantiate_connection_manager(
+        app: &mut App,
+        owner: Addr,
+        chain_addr_length_bytes: usize,
+    ) -> Addr {
+        let code_id = store_connection_manager_code(app);
+        let init_msg = common::connection_manager::InstantiateMsg {
+            chain_addr_length_bytes,
+        };
+
+        app.instantiate_contract(
+            code_id,
+            owner,
+            &init_msg,
+            &[],
+            String::from("CONNECTION_MANAGER"),
             None,
         )
         .unwrap()
@@ -151,6 +170,16 @@ pub mod helpers {
         );
 
         app.store_code(updater_manager_contract)
+    }
+
+    pub(crate) fn store_connection_manager_code(app: &mut App) -> u64 {
+        let connection_manager_contract = Box::new(ContractWrapper::new_with_empty(
+            connection_manager::contract::execute,
+            connection_manager::contract::instantiate,
+            connection_manager::contract::query,
+        ));
+
+        app.store_code(connection_manager_contract)
     }
 
     pub(crate) fn store_test_recipient_code(app: &mut App) -> u64 {

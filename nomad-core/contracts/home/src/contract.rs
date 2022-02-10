@@ -6,7 +6,7 @@ use cosmwasm_std::{
     MessageInfo, Reply, ReplyOn, Response, StdResult, SubMsg, WasmMsg,
 };
 use cw2::set_contract_version;
-use ethers_core::types::H256;
+use ethers_core::types::{H160, H256};
 
 use crate::error::ContractError;
 use crate::state::{NONCES, UPDATER_MANAGER};
@@ -227,7 +227,7 @@ pub fn try_improper_update(
 pub fn try_set_updater(
     deps: DepsMut,
     info: MessageInfo,
-    updater: String,
+    updater: H160,
 ) -> Result<Response, ContractError> {
     only_updater_manager(deps.as_ref(), info.clone())?;
     Ok(nomad_base::_set_updater(deps, updater)?)
@@ -346,15 +346,16 @@ mod tests {
     const LOCAL_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =
         "1111111111111111111111111111111111111111111111111111111111111111";
-    const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
 
     #[test]
     fn proper_initialization() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
         let msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -392,7 +393,7 @@ mod tests {
         // Updater
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Updater {}).unwrap();
         let value: UpdaterResponse = from_binary(&res).unwrap();
-        assert_eq!(UPDATER_PUBKEY.to_owned(), value.updater);
+        assert_eq!(updater.address(), value.updater);
 
         // ------ MERKLE ------
         // Initial root valid
@@ -414,11 +415,13 @@ mod tests {
 
     #[test]
     fn does_not_dispatch_messages_too_large() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
         let msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -438,11 +441,13 @@ mod tests {
 
     #[test]
     fn dispatches_message() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
         let msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -500,11 +505,13 @@ mod tests {
 
     #[test]
     fn suggests_updates() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
         let msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -540,11 +547,13 @@ mod tests {
 
     #[test]
     fn suggests_zero_update_values_on_empty_queue() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
         let msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -571,7 +580,7 @@ mod tests {
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -634,7 +643,7 @@ mod tests {
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -700,7 +709,7 @@ mod tests {
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -749,7 +758,7 @@ mod tests {
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -801,6 +810,8 @@ mod tests {
 
     #[tokio::test]
     async fn rejects_update_from_non_updater() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let not_updater_privkey =
             "2111111111111111111111111111111111111111111111111111111111111111";
         let not_updater: Updater = Updater::from_privkey(not_updater_privkey, LOCAL_DOMAIN);
@@ -809,7 +820,7 @@ mod tests {
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -867,7 +878,7 @@ mod tests {
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 
@@ -935,11 +946,13 @@ mod tests {
 
     #[test]
     fn only_owner_sets_updater_manager() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let mut deps = mock_dependencies_with_balance(&coins(100, "token"));
 
         let init_msg = InstantiateMsg {
             local_domain: LOCAL_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
         };
         let info = mock_info("owner", &coins(100, "earth"));
 

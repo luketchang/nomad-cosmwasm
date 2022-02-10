@@ -1,4 +1,4 @@
-use ethers_core::types::H256;
+use ethers_core::types::{H160, H256};
 use serde::{Deserialize, Serialize};
 
 use common::States;
@@ -14,6 +14,6 @@ pub struct State {
 }
 
 pub const LOCAL_DOMAIN: Item<u32> = Item::new("nomad_base_local_domain");
-pub const UPDATER: Item<Addr> = Item::new("nomad_base_updater");
+pub const UPDATER: Item<H160> = Item::new("nomad_base_updater");
 pub const STATE: Item<States> = Item::new("nomad_base_state");
 pub const COMMITTED_ROOT: Item<H256> = Item::new("nomad_base_committed_root");

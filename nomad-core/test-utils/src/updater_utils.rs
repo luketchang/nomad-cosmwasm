@@ -1,13 +1,6 @@
-use ethers_core::types::{Address, Signature, H256};
+use ethers_core::types::{Signature, H160, H256};
 use ethers_signers::{LocalWallet, Signer};
 use sha3::{digest::Update as DigestUpdate, Digest, Keccak256};
-
-#[derive(Debug, Clone)]
-pub struct Updater {
-    pub local_domain: u32,
-    pub signer: LocalWallet,
-    pub address: Address,
-}
 
 #[derive(Debug, Clone)]
 pub struct Update {
@@ -15,6 +8,12 @@ pub struct Update {
     pub old_root: H256,
     pub new_root: H256,
     pub signature: Signature,
+}
+
+#[derive(Debug, Clone)]
+pub struct Updater {
+    pub local_domain: u32,
+    pub signer: LocalWallet,
 }
 
 impl Updater {
@@ -26,9 +25,12 @@ impl Updater {
     pub fn from_wallet(wallet: LocalWallet, domain: u32) -> Self {
         Self {
             local_domain: domain,
-            signer: wallet.clone(),
-            address: wallet.address(),
+            signer: wallet,
         }
+    }
+
+    pub fn address(&self) -> H160 {
+        self.signer.address()
     }
 
     fn domain_hash(&self) -> H256 {

@@ -1,3 +1,4 @@
+use common::nomad_base::HomeDomainHashResponse;
 use common::{h256_to_n_byte_addr, Decode, HandleExecuteMsg, MessageStatus, NomadMessage};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
@@ -6,10 +7,12 @@ use cosmwasm_std::{
     MessageInfo, Reply, ReplyOn, Response, StdResult, SubMsg, WasmMsg,
 };
 use cw2::set_contract_version;
-use ethers_core::types::H256;
+use ethers_core::types::{H160, H256};
 
 use crate::error::ContractError;
-use crate::state::{CHAIN_ADDR_LENGTH, CONFIRM_AT, MESSAGES, OPTIMISTIC_SECONDS, REMOTE_DOMAIN};
+use crate::state::{
+    CHAIN_ADDR_LENGTH_BYTES, CONFIRM_AT, MESSAGES, OPTIMISTIC_SECONDS, REMOTE_DOMAIN,
+};
 use common::replica::{
     AcceptableRootResponse, ConfirmAtResponse, ExecuteMsg, InstantiateMsg, MessageStatusResponse,
     OptimisticSecondsResponse, QueryMsg, RemoteDomainResponse,
@@ -30,7 +33,7 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     nomad_base::instantiate(deps.branch(), env, info, msg.clone().into())?;
 
-    CHAIN_ADDR_LENGTH.save(deps.storage, &msg.chain_addr_length)?;
+    CHAIN_ADDR_LENGTH_BYTES.save(deps.storage, &msg.chain_addr_length_bytes)?;
     REMOTE_DOMAIN.save(deps.storage, &msg.remote_domain)?;
     OPTIMISTIC_SECONDS.save(deps.storage, &msg.optimistic_seconds)?;
     nomad_base::_set_committed_root(deps.branch(), msg.committed_root)?;
@@ -176,7 +179,7 @@ pub fn try_process(
     MESSAGES.save(deps.storage, leaf.as_bytes(), &MessageStatus::Processed)?;
 
     // TODO: check gas limit to ensure rest of tx doesn't fail for gas
-    let addr_length = CHAIN_ADDR_LENGTH.load(deps.storage)?;
+    let addr_length = CHAIN_ADDR_LENGTH_BYTES.load(deps.storage)?;
 
     let handle_msg: HandleExecuteMsg = nomad_message.clone().into();
     let wasm_msg = WasmMsg::Execute {
@@ -260,7 +263,7 @@ pub fn try_set_optimistic_timeout(
 pub fn try_set_updater(
     deps: DepsMut,
     info: MessageInfo,
-    updater: String,
+    updater: H160,
 ) -> Result<Response, ContractError> {
     ownable::only_owner(deps.as_ref(), info)?;
     Ok(nomad_base::_set_updater(deps, updater)?)
@@ -302,12 +305,19 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::RemoteDomain {} => to_binary(&query_remote_domain(deps)?),
         QueryMsg::CommittedRoot {} => to_binary(&nomad_base::query_committed_root(deps)?),
-        QueryMsg::HomeDomainHash {} => to_binary(&nomad_base::query_home_domain_hash(deps)?),
+        QueryMsg::HomeDomainHash {} => to_binary(&query_home_domain_hash(deps)?),
         QueryMsg::LocalDomain {} => to_binary(&nomad_base::query_local_domain(deps)?),
         QueryMsg::State {} => to_binary(&nomad_base::query_state(deps)?),
         QueryMsg::Updater {} => to_binary(&nomad_base::query_updater(deps)?),
         QueryMsg::Owner {} => to_binary(&ownable::query_owner(deps)?),
     }
+}
+
+pub fn query_home_domain_hash(deps: Deps) -> StdResult<HomeDomainHashResponse> {
+    let domain = REMOTE_DOMAIN.load(deps.storage)?;
+    Ok(HomeDomainHashResponse {
+        home_domain_hash: nomad_base::domain_hash(domain),
+    })
 }
 
 pub fn query_acceptable_root(
@@ -361,24 +371,25 @@ mod tests {
     use cosmwasm_std::{coins, from_binary};
     use test_utils::{event_attr_value_by_key, Updater};
 
-    const CHAIN_ADDR_LENGTH: usize = 42;
+    const CHAIN_ADDR_LENGTH_BYTES: usize = 42;
     const LOCAL_DOMAIN: u32 = 2000;
     const REMOTE_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =
         "1111111111111111111111111111111111111111111111111111111111111111";
-    const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
 
     #[test]
     fn proper_initialization() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let mut deps = mock_dependencies_with_balance(&coins(2, "token"));
 
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            chain_addr_length: CHAIN_ADDR_LENGTH,
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
             committed_root: H256::zero(),
             optimistic_seconds,
         };
@@ -412,7 +423,7 @@ mod tests {
         // Updater
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Updater {}).unwrap();
         let value: UpdaterResponse = from_binary(&res).unwrap();
-        assert_eq!(UPDATER_PUBKEY.to_owned(), value.updater);
+        assert_eq!(updater.address(), value.updater);
     }
 
     #[tokio::test]
@@ -424,10 +435,10 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            chain_addr_length: CHAIN_ADDR_LENGTH,
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
             committed_root: H256::zero(),
             optimistic_seconds,
         };
@@ -463,10 +474,10 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            chain_addr_length: CHAIN_ADDR_LENGTH,
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
             committed_root: H256::zero(),
             optimistic_seconds,
         };
@@ -519,6 +530,8 @@ mod tests {
 
     #[tokio::test]
     async fn rejects_invalid_updater_signature() {
+        let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
+
         let not_updater: Updater = Updater::from_privkey(
             "2111111111111111111111111111111111111111111111111111111111111111",
             LOCAL_DOMAIN,
@@ -529,10 +542,10 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            chain_addr_length: CHAIN_ADDR_LENGTH,
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
             committed_root: H256::zero(),
             optimistic_seconds,
         };
@@ -570,10 +583,10 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            chain_addr_length: CHAIN_ADDR_LENGTH,
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
             committed_root: H256::zero(),
             optimistic_seconds,
         };
@@ -627,10 +640,10 @@ mod tests {
         let optimistic_seconds = 100u64;
 
         let msg = InstantiateMsg {
-            chain_addr_length: CHAIN_ADDR_LENGTH,
+            chain_addr_length_bytes: CHAIN_ADDR_LENGTH_BYTES,
             local_domain: LOCAL_DOMAIN,
             remote_domain: REMOTE_DOMAIN,
-            updater: UPDATER_PUBKEY.to_owned(),
+            updater: updater.address(),
             committed_root: H256::zero(),
             optimistic_seconds,
         };

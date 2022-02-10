@@ -311,6 +311,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "connection-manager"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw2",
+ "ethers-core",
+ "ethers-signers",
+ "ownable",
+ "schemars",
+ "serde",
+ "sha3 0.10.0",
+ "test-utils",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1000,6 +1021,7 @@ version = "0.1.0"
 dependencies = [
  "bad-recipient",
  "common",
+ "connection-manager",
  "cosmwasm-std",
  "cw-multi-test",
  "ethers-core",
@@ -1782,6 +1804,7 @@ dependencies = [
  "cosmwasm-storage",
  "cw-storage-plus 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cw2",
+ "ethers-core",
  "ownable",
  "schemars",
  "serde",

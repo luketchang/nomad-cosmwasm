@@ -13,7 +13,6 @@ mod test {
     const LOCAL_DOMAIN: u32 = 1000;
     const UPDATER_PRIVKEY: &str =
         "1111111111111111111111111111111111111111111111111111111111111111";
-    const UPDATER_PUBKEY: &str = "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a";
 
     #[tokio::test]
     async fn home_calls_updater_manager_slash_updater() {
@@ -22,15 +21,13 @@ mod test {
         let updater: Updater = Updater::from_privkey(UPDATER_PRIVKEY, LOCAL_DOMAIN);
 
         let owner = Addr::unchecked("owner");
-        let updater_addr = Addr::unchecked(UPDATER_PUBKEY);
 
         // Instantiate updater manager
         let updater_manager_addr =
-            instantiate_updater_manager(&mut app, owner.clone(), updater_addr.clone());
+            instantiate_updater_manager(&mut app, owner.clone(), updater.address());
 
         // Instantiate home
-        let home_addr =
-            instantiate_home(&mut app, owner.clone(), LOCAL_DOMAIN, updater_addr.clone());
+        let home_addr = instantiate_home(&mut app, owner.clone(), LOCAL_DOMAIN, updater.address());
 
         // Set updater manager on home to be updater_manager
         let set_updater_manager_msg = common::home::ExecuteMsg::SetUpdaterManager {
@@ -75,7 +72,7 @@ mod test {
             signature: update.signature.to_vec(),
         };
         let res = app
-            .execute_contract(updater_addr.clone(), home_addr.clone(), &update_msg, &[])
+            .execute_contract(owner, home_addr.clone(), &update_msg, &[])
             .unwrap();
         println!("Improper Update: {:?}", res);
 

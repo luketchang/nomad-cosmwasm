@@ -1,5 +1,5 @@
 [package]
-name = "updater-manager"
+name = "connection-manager"
 version = "0.1.0"
 authors = ["Luke Tchang <ltchang@stanford.edu>"]
 edition = "2018"
@@ -37,9 +37,13 @@ schemars = "0.8"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0" }
 ethers-core = "0.6.2"
+ethers-signers = "0.6.2"
+sha3 = "0.10.0"
+tokio = { version = "1.0.1", features = ["rt", "macros"] }
 
 ownable = { path = "../ownable", features = ["library"] }
 common = { path = "../../common" }
+test-utils = { path = "../../test-utils" }
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0-beta" }
