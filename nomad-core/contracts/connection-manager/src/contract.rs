@@ -286,6 +286,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::IsReplica { replica } => to_binary(&query_is_replica(deps, replica)?),
         QueryMsg::LocalDomain {} => to_binary(&query_local_domain(deps)?),
         QueryMsg::Owner {} => to_binary(&ownable::query_owner(deps)?),
+        QueryMsg::ChainAddrLengthBytes {} => to_binary(&query_chain_addr_length_bytes(deps)?),
     }
 }
 
@@ -344,6 +345,10 @@ pub fn query_local_domain(deps: Deps) -> StdResult<LocalDomainResponse> {
     let local_domain_resp: LocalDomainResponse =
         deps.querier.query_wasm_smart(home_addr, &query_msg)?;
     Ok(local_domain_resp)
+}
+
+pub fn query_chain_addr_length_bytes(deps: Deps) -> StdResult<usize> {
+    CHAIN_ADDR_LENGTH_BYTES.load(deps.storage)
 }
 
 #[cfg(test)]
