@@ -34,7 +34,7 @@ pub fn instantiate(
     ownable::instantiate(deps.branch(), env, info, common::ownable::InstantiateMsg {})?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    CHAIN_ADDR_LENGTH_BYTES.save(deps.storage, &msg.chain_addr_length_bytes);
+    CHAIN_ADDR_LENGTH_BYTES.save(deps.storage, &msg.chain_addr_length_bytes)?;
 
     Ok(Response::new())
 }
@@ -51,27 +51,27 @@ pub fn execute(
             domain,
             updater,
             signature,
-        } => try_unenroll_replica(deps, domain, updater, signature),
+        } => execute_unenroll_replica(deps, domain, updater, signature),
         ExecuteMsg::OwnerEnrollReplica { domain, replica } => {
-            try_owner_enroll_replica(deps, info, domain, replica)
+            execute_owner_enroll_replica(deps, info, domain, replica)
         }
         ExecuteMsg::OwnerUnenrollReplica { replica } => {
-            try_owner_unenroll_replica(deps, info, replica)
+            execute_owner_unenroll_replica(deps, info, replica)
         }
         ExecuteMsg::SetWatcherPermission {
             watcher,
             domain,
             access,
-        } => try_set_watcher_permission(deps, info, watcher, domain, access),
-        ExecuteMsg::SetHome { home } => try_set_home(deps, info, home),
-        ExecuteMsg::RenounceOwnership {} => Ok(ownable::try_renounce_ownership(deps, info)?),
+        } => execute_set_watcher_permission(deps, info, watcher, domain, access),
+        ExecuteMsg::SetHome { home } => execute_set_home(deps, info, home),
+        ExecuteMsg::RenounceOwnership {} => Ok(ownable::execute_renounce_ownership(deps, info)?),
         ExecuteMsg::TransferOwnership { new_owner } => {
-            Ok(ownable::try_transfer_ownership(deps, info, new_owner)?)
+            Ok(ownable::execute_transfer_ownership(deps, info, new_owner)?)
         }
     }
 }
 
-pub fn try_unenroll_replica(
+pub fn execute_unenroll_replica(
     deps: DepsMut,
     domain: u32,
     updater: H256,
@@ -112,7 +112,7 @@ pub fn try_unenroll_replica(
     _unenroll_replica(deps, replica_addr)
 }
 
-pub fn try_owner_enroll_replica(
+pub fn execute_owner_enroll_replica(
     mut deps: DepsMut,
     info: MessageInfo,
     domain: u32,
@@ -129,7 +129,7 @@ pub fn try_owner_enroll_replica(
     _enroll_replica(deps, domain, replica_addr)
 }
 
-pub fn try_owner_unenroll_replica(
+pub fn execute_owner_unenroll_replica(
     mut deps: DepsMut,
     info: MessageInfo,
     replica: String,
@@ -141,7 +141,7 @@ pub fn try_owner_unenroll_replica(
     _unenroll_replica(deps.branch(), replica_addr.clone())
 }
 
-pub fn try_set_watcher_permission(
+pub fn execute_set_watcher_permission(
     deps: DepsMut,
     info: MessageInfo,
     watcher: H160,
@@ -161,7 +161,7 @@ pub fn try_set_watcher_permission(
     ))
 }
 
-pub fn try_set_home(
+pub fn execute_set_home(
     deps: DepsMut,
     info: MessageInfo,
     home: String,

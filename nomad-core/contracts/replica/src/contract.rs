@@ -54,13 +54,13 @@ pub fn execute(
             committed_root,
             new_root,
             signature,
-        } => try_update(deps, env, committed_root, new_root, signature),
+        } => execute_update(deps, env, committed_root, new_root, signature),
         ExecuteMsg::DoubleUpdate {
             old_root,
             new_roots,
             signature,
             signature_2,
-        } => Ok(nomad_base::try_double_update(
+        } => Ok(nomad_base::execute_double_update(
             deps,
             info,
             old_root,
@@ -69,28 +69,28 @@ pub fn execute(
             signature_2,
             _fail,
         )?),
-        ExecuteMsg::Prove { leaf, proof, index } => try_prove(deps, env, leaf, proof, index),
-        ExecuteMsg::Process { message } => try_process(deps, info, message),
+        ExecuteMsg::Prove { leaf, proof, index } => execute_prove(deps, env, leaf, proof, index),
+        ExecuteMsg::Process { message } => execute_process(deps, info, message),
         ExecuteMsg::ProveAndProcess {
             message,
             proof,
             index,
-        } => try_prove_and_process(deps, env, info, message, proof, index),
+        } => execute_prove_and_process(deps, env, info, message, proof, index),
         ExecuteMsg::SetConfirmation { root, confirm_at } => {
-            try_set_confirmation(deps, info, root, confirm_at)
+            execute_set_confirmation(deps, info, root, confirm_at)
         }
         ExecuteMsg::SetOptimisticTimeout { optimistic_seconds } => {
-            try_set_optimistic_timeout(deps, info, optimistic_seconds)
+            execute_set_optimistic_timeout(deps, info, optimistic_seconds)
         }
-        ExecuteMsg::SetUpdater { updater } => try_set_updater(deps, info, updater),
-        ExecuteMsg::RenounceOwnership {} => Ok(ownable::try_renounce_ownership(deps, info)?),
+        ExecuteMsg::SetUpdater { updater } => execute_set_updater(deps, info, updater),
+        ExecuteMsg::RenounceOwnership {} => Ok(ownable::execute_renounce_ownership(deps, info)?),
         ExecuteMsg::TransferOwnership { new_owner } => {
-            Ok(ownable::try_transfer_ownership(deps, info, new_owner)?)
+            Ok(ownable::execute_transfer_ownership(deps, info, new_owner)?)
         }
     }
 }
 
-pub fn try_update(
+pub fn execute_update(
     mut deps: DepsMut,
     env: Env,
     old_root: H256,
@@ -127,7 +127,7 @@ pub fn try_update(
     ))
 }
 
-pub fn try_prove(
+pub fn execute_prove(
     deps: DepsMut,
     env: Env,
     leaf: H256,
@@ -155,7 +155,7 @@ pub fn try_prove(
     Ok(Response::new().set_data(to_binary(&false)?))
 }
 
-pub fn try_process(
+pub fn execute_process(
     deps: DepsMut,
     info: MessageInfo,
     message: Vec<u8>,
@@ -205,7 +205,7 @@ pub fn try_process(
     Ok(Response::new().add_submessage(sub_msg))
 }
 
-pub fn try_prove_and_process(
+pub fn execute_prove_and_process(
     mut deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -216,17 +216,17 @@ pub fn try_prove_and_process(
     let leaf = NomadMessage::read_from(&mut message.as_slice())
         .expect("!message conversion")
         .to_leaf();
-    let ret = try_prove(deps.branch(), env, leaf, proof, index)?.data;
+    let ret = execute_prove(deps.branch(), env, leaf, proof, index)?.data;
     let prove_success: bool = from_binary(&ret.unwrap())?;
 
     if !prove_success {
         return Err(ContractError::FailedProveCall { leaf, index });
     }
 
-    try_process(deps.branch(), info, message)
+    execute_process(deps.branch(), info, message)
 }
 
-pub fn try_set_confirmation(
+pub fn execute_set_confirmation(
     deps: DepsMut,
     info: MessageInfo,
     root: H256,
@@ -247,7 +247,7 @@ pub fn try_set_confirmation(
     ))
 }
 
-pub fn try_set_optimistic_timeout(
+pub fn execute_set_optimistic_timeout(
     deps: DepsMut,
     info: MessageInfo,
     optimistic_seconds: u64,
@@ -260,7 +260,7 @@ pub fn try_set_optimistic_timeout(
     ))
 }
 
-pub fn try_set_updater(
+pub fn execute_set_updater(
     deps: DepsMut,
     info: MessageInfo,
     updater: H160,
