@@ -35,11 +35,11 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Insert { element } => try_insert(deps, element),
+        ExecuteMsg::Insert { element } => execute_insert(deps, element),
     }
 }
 
-pub fn try_insert(deps: DepsMut, element: H256) -> Result<Response, ContractError> {
+pub fn execute_insert(deps: DepsMut, element: H256) -> Result<Response, ContractError> {
     let mut merkle = MERKLE.load(deps.storage)?;
     merkle.ingest(element);
     MERKLE.save(deps.storage, &merkle)?;
