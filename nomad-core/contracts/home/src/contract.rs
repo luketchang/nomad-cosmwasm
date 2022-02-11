@@ -199,7 +199,7 @@ pub fn execute_improper_update(
     nomad_base::not_failed(deps.as_ref())?;
 
     if !nomad_base::is_updater_signature(deps.as_ref(), old_root, new_root, signature)? {
-        return Err(ContractError::NotUpdaterSignature);
+        return Err(ContractError::NotUpdaterSignature {});
     }
 
     let committed_root = nomad_base::query_committed_root(deps.as_ref())?.committed_root;
@@ -337,6 +337,7 @@ pub fn query_max_message_body_bytes() -> StdResult<u64> {
 mod tests {
     use super::*;
     use common::merkle::RootResponse;
+    use common::merkle_tree::INITIAL_ROOT;
     use common::nomad_base::{
         CommittedRootResponse, LocalDomainResponse, StateResponse, UpdaterResponse,
     };
@@ -344,7 +345,6 @@ mod tests {
     use common::{h256_to_string, States};
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
-    use merkle::merkle_tree::INITIAL_ROOT;
     use test_utils::{event_attr_value_by_key, Updater};
 
     const LOCAL_DOMAIN: u32 = 1000;

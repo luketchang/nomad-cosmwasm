@@ -14,10 +14,7 @@ pub enum ContractError {
     NotCurrentCommittedRoot { old_root: H256 },
 
     #[error("Not updater signature")]
-    NotUpdaterSignature,
-
-    #[error("Not improper update")]
-    NotImproperUpdate,
+    NotUpdaterSignature {},
 
     #[error("Not updater manager: {address}")]
     NotUpdaterManager { address: String },

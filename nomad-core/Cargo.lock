@@ -304,6 +304,7 @@ dependencies = [
  "ethers-core",
  "ethers-signers",
  "hex",
+ "lazy_static",
  "schemars",
  "serde",
  "sha3 0.10.0",
@@ -1111,7 +1112,6 @@ dependencies = [
  "cw2",
  "ethers-core",
  "getrandom 0.2.4",
- "lazy_static",
  "schemars",
  "serde",
  "sha3 0.10.0",
@@ -1701,10 +1701,10 @@ dependencies = [
 name = "test-utils"
 version = "0.1.0"
 dependencies = [
+ "common",
  "cosmwasm-std",
  "ethers-core",
  "ethers-signers",
- "merkle",
  "schemars",
  "serde",
  "serde_json",

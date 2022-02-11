@@ -7,6 +7,8 @@ pub use message::*;
 mod contract_msg;
 pub use contract_msg::*;
 
+pub mod merkle_tree;
+
 mod utils;
 pub use utils::*;
 

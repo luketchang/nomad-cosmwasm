@@ -1,5 +1,5 @@
+use common::merkle_tree::Proof;
 use ethers_core::types::H256;
-use merkle::merkle_tree::Proof;
 use std::{fs::File, io::Read, path::PathBuf};
 
 /// Struct representing a single merkle test case

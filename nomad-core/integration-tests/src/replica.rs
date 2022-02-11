@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod test {
+    use common::merkle_tree::{merkle_root_from_branch, Proof};
     use common::{
         addr_to_h256, h256_to_string, replica, test::test_replica, Encode, MessageStatus,
         NomadMessage,
@@ -7,7 +8,6 @@ mod test {
     use cosmwasm_std::{from_binary, Addr};
     use cw_multi_test::Executor;
     use ethers_core::types::H256;
-    use merkle::merkle_tree::{merkle_root_from_branch, Proof};
     use test_utils::Updater;
 
     use crate::utils::helpers::{

@@ -8,7 +8,7 @@ pub enum ContractError {
     Std(#[from] StdError),
 
     #[error("Replica for domain {domain} does not exist")]
-    ReplicaNotExists { domain: u32 },
+    NotReplicaExists { domain: u32 },
 
     #[error("Not current updater: {address}")]
     NotCurrentUpdater { address: String },

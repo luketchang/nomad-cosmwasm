@@ -20,7 +20,7 @@ pub enum ContractError {
     WrongDestination { destination: u32 },
 
     #[error("Not updater signature")]
-    NotUpdaterSignature,
+    NotUpdaterSignature {},
 
     #[error("Failed to prove message. Leaf: {leaf}. Index: {index}")]
     FailedProveCall { leaf: H256, index: u64 },
@@ -32,8 +32,8 @@ pub enum ContractError {
     UnknownReplyMessage { id: u64 },
 
     #[error("{0}")]
-    OwnableError(#[from] ownable::ContractError),
+    NomadBaseError(#[from] nomad_base::ContractError),
 
     #[error("{0}")]
-    NomadBaseError(#[from] nomad_base::ContractError),
+    OwnableError(#[from] ownable::ContractError),
 }
