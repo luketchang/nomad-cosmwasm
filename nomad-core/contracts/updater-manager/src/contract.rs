@@ -54,17 +54,17 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::SetHome { home } => try_set_home(deps, info, home),
-        ExecuteMsg::SetUpdater { updater } => try_set_updater(deps, info, updater),
-        ExecuteMsg::SlashUpdater { reporter } => try_slash_updater(deps, info, reporter),
-        ExecuteMsg::RenounceOwnership {} => Ok(ownable::try_renounce_ownership(deps, info)?),
+        ExecuteMsg::SetHome { home } => execute_set_home(deps, info, home),
+        ExecuteMsg::SetUpdater { updater } => execute_set_updater(deps, info, updater),
+        ExecuteMsg::SlashUpdater { reporter } => execute_slash_updater(deps, info, reporter),
+        ExecuteMsg::RenounceOwnership {} => Ok(ownable::execute_renounce_ownership(deps, info)?),
         ExecuteMsg::TransferOwnership { new_owner } => {
-            Ok(ownable::try_transfer_ownership(deps, info, new_owner)?)
+            Ok(ownable::execute_transfer_ownership(deps, info, new_owner)?)
         }
     }
 }
 
-pub fn try_set_home(
+pub fn execute_set_home(
     deps: DepsMut,
     info: MessageInfo,
     home: String,
@@ -77,7 +77,7 @@ pub fn try_set_home(
     Ok(Response::new().add_event(Event::new("SetHome").add_attribute("home", home)))
 }
 
-pub fn try_set_updater(
+pub fn execute_set_updater(
     deps: DepsMut,
     info: MessageInfo,
     updater: H160,
@@ -110,7 +110,7 @@ pub fn try_set_updater(
         .add_submessage(sub_msg))
 }
 
-pub fn try_slash_updater(
+pub fn execute_slash_updater(
     deps: DepsMut,
     info: MessageInfo,
     reporter: String,

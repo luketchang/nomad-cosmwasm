@@ -39,35 +39,35 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Enqueue { item } => try_enqueue(deps, item),
-        ExecuteMsg::Dequeue {} => try_dequeue(deps),
-        ExecuteMsg::EnqueueBatch { items } => try_enqueue_batch(deps, items),
-        ExecuteMsg::DequeueBatch { number } => try_dequeue_batch(deps, number),
+        ExecuteMsg::Enqueue { item } => execute_enqueue(deps, item),
+        ExecuteMsg::Dequeue {} => execute_dequeue(deps),
+        ExecuteMsg::EnqueueBatch { items } => execute_enqueue_batch(deps, items),
+        ExecuteMsg::DequeueBatch { number } => execute_dequeue_batch(deps, number),
     }
 }
 
-pub fn try_enqueue(deps: DepsMut, item: H256) -> Result<Response, ContractError> {
+pub fn execute_enqueue(deps: DepsMut, item: H256) -> Result<Response, ContractError> {
     let mut queue = QUEUE.load(deps.storage)?;
     queue.push_back(item);
     QUEUE.save(deps.storage, &queue)?;
     Ok(Response::new().add_attribute("action", "enqueue"))
 }
 
-pub fn try_dequeue(deps: DepsMut) -> Result<Response, ContractError> {
+pub fn execute_dequeue(deps: DepsMut) -> Result<Response, ContractError> {
     let mut queue = QUEUE.load(deps.storage)?;
     let item = queue.pop_front().ok_or(ContractError::QueueEmpty {})?;
     QUEUE.save(deps.storage, &queue)?;
     Ok(Response::new().set_data(to_binary(&item)?))
 }
 
-pub fn try_enqueue_batch(deps: DepsMut, items: Vec<H256>) -> Result<Response, ContractError> {
+pub fn execute_enqueue_batch(deps: DepsMut, items: Vec<H256>) -> Result<Response, ContractError> {
     let mut queue = QUEUE.load(deps.storage)?;
     queue.extend(items.iter());
     QUEUE.save(deps.storage, &queue)?;
     Ok(Response::new().add_attribute("action", "enqueue_batch"))
 }
 
-pub fn try_dequeue_batch(deps: DepsMut, number: u64) -> Result<Response, ContractError> {
+pub fn execute_dequeue_batch(deps: DepsMut, number: u64) -> Result<Response, ContractError> {
     let mut queue = QUEUE.load(deps.storage)?;
     let drained: Vec<H256> = queue.drain(0..(number as usize)).collect();
     QUEUE.save(deps.storage, &queue)?;
@@ -165,7 +165,7 @@ mod tests {
 
         // Enqueue single
         let single_item = H256::zero();
-        try_enqueue(deps.as_mut(), single_item).unwrap();
+        execute_enqueue(deps.as_mut(), single_item).unwrap();
 
         // Is empty
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Length {}).unwrap();
@@ -173,13 +173,13 @@ mod tests {
         assert_eq!(1, value.length);
 
         // Dequeue single
-        let res = try_dequeue(deps.as_mut()).unwrap();
+        let res = execute_dequeue(deps.as_mut()).unwrap();
         let item: H256 = from_binary(&res.data.unwrap()).unwrap();
         assert_eq!(single_item, item);
 
         // Enqueue batch 3
         let items = vec![H256::zero(), H256::repeat_byte(1), H256::repeat_byte(2)];
-        try_enqueue_batch(deps.as_mut(), items).unwrap();
+        execute_enqueue_batch(deps.as_mut(), items).unwrap();
 
         // Length
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Length {}).unwrap();
@@ -214,7 +214,7 @@ mod tests {
         assert_eq!(true, value.contains);
 
         // Dequeue batch 2
-        let res = try_dequeue_batch(deps.as_mut(), 2).unwrap();
+        let res = execute_dequeue_batch(deps.as_mut(), 2).unwrap();
         let dequeued: Vec<H256> = from_binary(&res.data.unwrap()).unwrap();
         assert_eq!(H256::zero().to_string(), dequeued[0].to_string());
         assert_eq!(H256::repeat_byte(1).to_string(), dequeued[1].to_string());

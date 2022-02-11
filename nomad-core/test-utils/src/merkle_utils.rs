@@ -1,5 +1,5 @@
+use common::merkle_tree::Proof;
 use ethers_core::types::H256;
-use merkle::merkle_tree::Proof;
 use std::{fs::File, io::Read, path::PathBuf};
 
 /// Struct representing a single merkle test case
@@ -17,7 +17,6 @@ pub struct MerkleTestCase {
 }
 
 /// Find a vector file assuming that a git checkout exists
-// TODO: look instead for the workspace `Cargo.toml`? use a cargo env var?
 pub fn find_vector(final_component: &str) -> PathBuf {
     let cwd = std::env::current_dir().expect("no cwd?");
     let git_dir = cwd

@@ -58,14 +58,14 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::RenounceOwnership {} => Ok(ownable::try_renounce_ownership(deps, info)?),
+        ExecuteMsg::RenounceOwnership {} => Ok(ownable::execute_renounce_ownership(deps, info)?),
         ExecuteMsg::TransferOwnership { new_owner } => {
-            Ok(ownable::try_transfer_ownership(deps, info, new_owner)?)
+            Ok(ownable::execute_transfer_ownership(deps, info, new_owner)?)
         }
     }
 }
 
-pub fn try_double_update(
+pub fn execute_double_update(
     deps: DepsMut,
     info: MessageInfo,
     old_root: H256,
@@ -318,7 +318,7 @@ mod tests {
         let update = updater.sign_update(old_root, new_root).await.unwrap();
         let double_update = updater.sign_update(old_root, bad_new_root).await.unwrap();
 
-        let double_update_res = try_double_update(
+        let double_update_res = execute_double_update(
             deps.as_mut(),
             info.clone(),
             old_root,
@@ -350,7 +350,7 @@ mod tests {
         let new_root = H256::repeat_byte(1);
         let update = updater.sign_update(old_root, new_root).await.unwrap();
 
-        let double_update_res = try_double_update(
+        let double_update_res = execute_double_update(
             deps.as_mut(),
             info.clone(),
             old_root,

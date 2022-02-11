@@ -61,18 +61,18 @@ pub fn execute(
             destination,
             recipient,
             message_body,
-        } => try_dispatch(deps, info, destination, recipient, message_body),
+        } => execute_dispatch(deps, info, destination, recipient, message_body),
         ExecuteMsg::Update {
             committed_root,
             new_root,
             signature,
-        } => try_update(deps, info, committed_root, new_root, signature),
+        } => execute_update(deps, info, committed_root, new_root, signature),
         ExecuteMsg::DoubleUpdate {
             old_root,
             new_roots,
             signature,
             signature_2,
-        } => Ok(nomad_base::try_double_update(
+        } => Ok(nomad_base::execute_double_update(
             deps,
             info,
             old_root,
@@ -85,19 +85,19 @@ pub fn execute(
             old_root,
             new_root,
             signature,
-        } => try_improper_update(deps, info, old_root, new_root, &signature),
-        ExecuteMsg::SetUpdater { updater } => try_set_updater(deps, info, updater),
+        } => execute_improper_update(deps, info, old_root, new_root, &signature),
+        ExecuteMsg::SetUpdater { updater } => execute_set_updater(deps, info, updater),
         ExecuteMsg::SetUpdaterManager { updater_manager } => {
-            try_set_updater_manager(deps, info, updater_manager)
+            execute_set_updater_manager(deps, info, updater_manager)
         }
-        ExecuteMsg::RenounceOwnership {} => Ok(ownable::try_renounce_ownership(deps, info)?),
+        ExecuteMsg::RenounceOwnership {} => Ok(ownable::execute_renounce_ownership(deps, info)?),
         ExecuteMsg::TransferOwnership { new_owner } => {
-            Ok(ownable::try_transfer_ownership(deps, info, new_owner)?)
+            Ok(ownable::execute_transfer_ownership(deps, info, new_owner)?)
         }
     }
 }
 
-pub fn try_dispatch(
+pub fn execute_dispatch(
     mut deps: DepsMut,
     info: MessageInfo,
     destination: u32,
@@ -132,11 +132,11 @@ pub fn try_dispatch(
 
     // Insert leaf into tree
     let hash: H256 = nomad_message.to_leaf();
-    merkle::try_insert(deps.branch(), hash)?;
+    merkle::execute_insert(deps.branch(), hash)?;
 
     // Enqueue merkle root
     let root = merkle::query_root(deps.as_ref())?.root;
-    queue::try_enqueue(deps.branch(), root)?;
+    queue::execute_enqueue(deps.branch(), root)?;
 
     Ok(Response::new().add_event(
         Event::new("Dispatch")
@@ -151,7 +151,7 @@ pub fn try_dispatch(
     ))
 }
 
-pub fn try_update(
+pub fn execute_update(
     mut deps: DepsMut,
     info: MessageInfo,
     committed_root: H256,
@@ -160,9 +160,8 @@ pub fn try_update(
 ) -> Result<Response, ContractError> {
     nomad_base::not_failed(deps.as_ref())?;
 
-    // TODO: clean up
     let improper_update_res =
-        try_improper_update(deps.branch(), info, committed_root, new_root, &signature)?;
+        execute_improper_update(deps.branch(), info, committed_root, new_root, &signature)?;
     let improper_update: bool = from_binary(&improper_update_res.clone().data.unwrap())?;
 
     if improper_update {
@@ -170,7 +169,7 @@ pub fn try_update(
     }
 
     loop {
-        let next_res = queue::try_dequeue(deps.branch())?;
+        let next_res = queue::execute_dequeue(deps.branch())?;
         let next: H256 = from_binary(&next_res.data.unwrap())?;
         if next == new_root {
             break;
@@ -190,7 +189,7 @@ pub fn try_update(
     ))
 }
 
-pub fn try_improper_update(
+pub fn execute_improper_update(
     deps: DepsMut,
     info: MessageInfo,
     old_root: H256,
@@ -200,7 +199,7 @@ pub fn try_improper_update(
     nomad_base::not_failed(deps.as_ref())?;
 
     if !nomad_base::is_updater_signature(deps.as_ref(), old_root, new_root, signature)? {
-        return Err(ContractError::NotUpdaterSignature);
+        return Err(ContractError::NotUpdaterSignature {});
     }
 
     let committed_root = nomad_base::query_committed_root(deps.as_ref())?.committed_root;
@@ -224,7 +223,7 @@ pub fn try_improper_update(
     Ok(Response::new().set_data(to_binary(&false)?))
 }
 
-pub fn try_set_updater(
+pub fn execute_set_updater(
     deps: DepsMut,
     info: MessageInfo,
     updater: H160,
@@ -233,7 +232,7 @@ pub fn try_set_updater(
     Ok(nomad_base::_set_updater(deps, updater)?)
 }
 
-pub fn try_set_updater_manager(
+pub fn execute_set_updater_manager(
     deps: DepsMut,
     info: MessageInfo,
     updater_manager: String,
@@ -304,6 +303,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::QueueEnd {} => to_binary(&queue::query_last_item(deps)?),
         QueryMsg::QueueLength {} => to_binary(&queue::query_length(deps)?),
         QueryMsg::Owner {} => to_binary(&ownable::query_owner(deps)?),
+        QueryMsg::MaxMessageBodyBytes {} => to_binary(&query_max_message_body_bytes()?),
     }
 }
 
@@ -329,10 +329,15 @@ pub fn query_updater_manager(deps: Deps) -> StdResult<UpdaterManagerResponse> {
     })
 }
 
+pub fn query_max_message_body_bytes() -> StdResult<u64> {
+    Ok(MAX_MESSAGE_BODY_BYTES)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use common::merkle::RootResponse;
+    use common::merkle_tree::INITIAL_ROOT;
     use common::nomad_base::{
         CommittedRootResponse, LocalDomainResponse, StateResponse, UpdaterResponse,
     };
@@ -340,7 +345,6 @@ mod tests {
     use common::{h256_to_string, States};
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
-    use merkle::merkle_tree::INITIAL_ROOT;
     use test_utils::{event_attr_value_by_key, Updater};
 
     const LOCAL_DOMAIN: u32 = 1000;

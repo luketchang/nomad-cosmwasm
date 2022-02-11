@@ -5,9 +5,9 @@ use cw2::set_contract_version;
 use ethers_core::types::H256;
 
 use crate::error::ContractError;
-use crate::merkle_tree::IncrementalMerkle;
 use crate::state::MERKLE;
 use common::merkle::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RootResponse};
+use common::merkle_tree::IncrementalMerkle;
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:merkle";
@@ -35,11 +35,11 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Insert { element } => try_insert(deps, element),
+        ExecuteMsg::Insert { element } => execute_insert(deps, element),
     }
 }
 
-pub fn try_insert(deps: DepsMut, element: H256) -> Result<Response, ContractError> {
+pub fn execute_insert(deps: DepsMut, element: H256) -> Result<Response, ContractError> {
     let mut merkle = MERKLE.load(deps.storage)?;
     merkle.ingest(element);
     MERKLE.save(deps.storage, &merkle)?;
@@ -77,7 +77,7 @@ pub fn query_count(deps: Deps) -> StdResult<CountResponse> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::merkle_tree::INITIAL_ROOT;
+    use common::merkle_tree::INITIAL_ROOT;
     use cosmwasm_std::testing::{mock_dependencies_with_balance, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
 

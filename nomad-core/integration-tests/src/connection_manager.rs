@@ -1,5 +1,3 @@
-// TODO: local domain query, permissionless unenroll
-
 #[cfg(test)]
 mod test {
     use common::connection_manager;

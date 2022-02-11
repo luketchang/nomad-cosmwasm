@@ -44,20 +44,23 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::RenounceOwnership {} => try_renounce_ownership(deps, info),
+        ExecuteMsg::RenounceOwnership {} => execute_renounce_ownership(deps, info),
         ExecuteMsg::TransferOwnership { new_owner } => {
-            try_transfer_ownership(deps, info, new_owner)
+            execute_transfer_ownership(deps, info, new_owner)
         }
     }
 }
 
-pub fn try_renounce_ownership(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+pub fn execute_renounce_ownership(
+    deps: DepsMut,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
     only_owner(deps.as_ref(), info)?;
     OWNER.save(deps.storage, &Addr::unchecked("0x0"))?;
     Ok(Response::new().add_attribute("action", "renounce_ownership"))
 }
 
-pub fn try_transfer_ownership(
+pub fn execute_transfer_ownership(
     deps: DepsMut,
     info: MessageInfo,
     new_owner: String,
