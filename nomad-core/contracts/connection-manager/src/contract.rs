@@ -80,7 +80,7 @@ pub fn execute_unenroll_replica(
     let replica = query_domain_to_replica(deps.as_ref(), domain)?.replica;
     let replica_addr = deps.api.addr_validate(&replica)?;
     if replica_addr == Addr::unchecked("0x0") {
-        return Err(ContractError::ReplicaNotExists { domain });
+        return Err(ContractError::NotReplicaExists { domain });
     }
     let replica_h256 = addr_to_h256(replica_addr.clone());
 

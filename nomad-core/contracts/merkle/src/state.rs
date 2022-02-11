@@ -1,4 +1,4 @@
-use crate::merkle_tree::IncrementalMerkle;
+use common::merkle_tree::IncrementalMerkle;
 
 use cw_storage_plus::Item;
 

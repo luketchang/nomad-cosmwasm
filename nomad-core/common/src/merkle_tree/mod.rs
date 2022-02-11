@@ -64,7 +64,6 @@ pub fn merkle_root_from_branch(leaf: H256, branch: &[H256], depth: usize, index:
 
 #[cfg(test)]
 mod test {
-
     use super::*;
     #[test]
     fn it_calculates_the_initial_root() {

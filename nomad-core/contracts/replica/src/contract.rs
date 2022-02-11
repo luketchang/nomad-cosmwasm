@@ -13,6 +13,7 @@ use crate::error::ContractError;
 use crate::state::{
     CHAIN_ADDR_LENGTH_BYTES, CONFIRM_AT, MESSAGES, OPTIMISTIC_SECONDS, REMOTE_DOMAIN,
 };
+use common::merkle_tree;
 use common::replica::{
     AcceptableRootResponse, ConfirmAtResponse, ExecuteMsg, InstantiateMsg, MessageStatusResponse,
     OptimisticSecondsResponse, QueryMsg, RemoteDomainResponse,
@@ -105,7 +106,7 @@ pub fn execute_update(
     }
 
     if !nomad_base::is_updater_signature(deps.as_ref(), old_root, new_root, &signature)? {
-        return Err(ContractError::NotUpdaterSignature);
+        return Err(ContractError::NotUpdaterSignature {});
     }
 
     // TODO: _beforeUpdate hook?
@@ -139,10 +140,10 @@ pub fn execute_prove(
         return Err(ContractError::MessageAlreadyProven { leaf });
     }
 
-    let calculated_root = merkle::merkle_tree::merkle_root_from_branch(
+    let calculated_root = merkle_tree::merkle_root_from_branch(
         leaf,
         &proof[..],
-        merkle::merkle_tree::TREE_DEPTH,
+        merkle_tree::TREE_DEPTH,
         index as usize,
     );
 
