@@ -89,6 +89,8 @@ pub enum QueryMsg {
     // Tree {},
     Updater {},
     UpdaterManager {},
+
+    MaxMessageBodyBytes {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

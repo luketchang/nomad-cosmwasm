@@ -160,7 +160,6 @@ pub fn execute_update(
 ) -> Result<Response, ContractError> {
     nomad_base::not_failed(deps.as_ref())?;
 
-    // TODO: clean up
     let improper_update_res =
         execute_improper_update(deps.branch(), info, committed_root, new_root, &signature)?;
     let improper_update: bool = from_binary(&improper_update_res.clone().data.unwrap())?;
@@ -304,6 +303,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::QueueEnd {} => to_binary(&queue::query_last_item(deps)?),
         QueryMsg::QueueLength {} => to_binary(&queue::query_length(deps)?),
         QueryMsg::Owner {} => to_binary(&ownable::query_owner(deps)?),
+        QueryMsg::MaxMessageBodyBytes {} => to_binary(&query_max_message_body_bytes()?),
     }
 }
 
@@ -327,6 +327,10 @@ pub fn query_updater_manager(deps: Deps) -> StdResult<UpdaterManagerResponse> {
     Ok(UpdaterManagerResponse {
         updater_manager: updater_manager.into_string(),
     })
+}
+
+pub fn query_max_message_body_bytes() -> StdResult<u64> {
+    Ok(MAX_MESSAGE_BODY_BYTES)
 }
 
 #[cfg(test)]

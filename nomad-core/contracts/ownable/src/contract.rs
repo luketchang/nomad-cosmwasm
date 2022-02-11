@@ -51,7 +51,10 @@ pub fn execute(
     }
 }
 
-pub fn execute_renounce_ownership(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+pub fn execute_renounce_ownership(
+    deps: DepsMut,
+    info: MessageInfo,
+) -> Result<Response, ContractError> {
     only_owner(deps.as_ref(), info)?;
     OWNER.save(deps.storage, &Addr::unchecked("0x0"))?;
     Ok(Response::new().add_attribute("action", "renounce_ownership"))

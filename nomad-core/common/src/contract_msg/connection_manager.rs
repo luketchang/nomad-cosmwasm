@@ -45,6 +45,8 @@ pub enum QueryMsg {
     IsReplica { replica: String },
     LocalDomain {},
     Owner {},
+
+    ChainAddrLengthBytes {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
