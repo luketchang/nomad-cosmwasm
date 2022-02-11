@@ -266,12 +266,6 @@ pub fn recover_from_watcher_sig(
     Ok(sig.recover(RecoveryMessage::Data(digest.as_bytes().to_vec()))?)
 }
 
-pub fn watcher_domain_hash(watcher: H160, domain: u32) -> H256 {
-    let mut buf = watcher.to_fixed_bytes().to_vec();
-    buf.append(&mut domain.to_be_bytes().to_vec());
-    keccak256(buf).into()
-}
-
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
