@@ -1,8 +1,8 @@
 use ethers_core::types::SignatureError;
 use serde::{Deserialize, Serialize};
 
-mod message;
-pub use message::*;
+mod nomad_message;
+pub use nomad_message::*;
 
 mod contract_msg;
 pub use contract_msg::*;
