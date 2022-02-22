@@ -1,5 +1,5 @@
 use common::nomad_base::HomeDomainHashResponse;
-use common::{h256_to_n_byte_addr, Decode, HandleExecuteMsg, MessageStatus, NomadMessage};
+use common::{h256_to_n_byte_addr, Decode, HandleMsg, MessageStatus, NomadMessage};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -182,7 +182,7 @@ pub fn execute_process(
     // TODO: check gas limit to ensure rest of tx doesn't fail for gas
     let addr_length = CHAIN_ADDR_LENGTH_BYTES.load(deps.storage)?;
 
-    let handle_msg: HandleExecuteMsg = nomad_message.clone().into();
+    let handle_msg: HandleMsg = nomad_message.clone().into();
     let wasm_msg = WasmMsg::Execute {
         contract_addr: h256_to_n_byte_addr(deps.as_ref(), addr_length, nomad_message.recipient)
             .to_string(),
@@ -190,11 +190,6 @@ pub fn execute_process(
         funds: info.funds,
     };
     let cosmos_msg = CosmosMsg::Wasm(wasm_msg);
-
-    println!(
-        "wasm execute contract addr: {:?}",
-        h256_to_n_byte_addr(deps.as_ref(), addr_length, nomad_message.recipient).to_string()
-    );
 
     let sub_msg = SubMsg {
         id: PROCESS_ID,

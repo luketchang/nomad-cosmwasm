@@ -6,7 +6,7 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 
 use crate::error::ContractError;
-use common::test::test_recipient::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use common::{test::test_recipient::{InstantiateMsg, QueryMsg}, HandleMsg};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:test-recipient";
@@ -28,16 +28,9 @@ pub fn execute(
     _deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
-    msg: ExecuteMsg,
+    _msg: HandleMsg,
 ) -> Result<Response, ContractError> {
-    match msg {
-        ExecuteMsg::HandleMsg {
-            origin: _,
-            nonce: _,
-            sender: _,
-            message: _,
-        } => Ok(Response::new().add_event(Event::new("Handle"))),
-    }
+    Ok(Response::new().add_event(Event::new("Handle")))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]

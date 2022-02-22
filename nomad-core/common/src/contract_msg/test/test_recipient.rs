@@ -6,13 +6,11 @@ pub struct InstantiateMsg {}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum ExecuteMsg {
-    HandleMsg {
-        origin: u32,
-        nonce: u32,
-        sender: H256,
-        message: Vec<u8>,
-    },
+pub struct HandleMsg {
+    origin: u32,
+    nonce: u32,
+    sender: H256,
+    message: Vec<u8>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
