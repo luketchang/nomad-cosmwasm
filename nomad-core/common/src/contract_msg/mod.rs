@@ -1,4 +1,5 @@
 pub mod connection_manager;
+pub mod governance_router;
 pub mod home;
 pub mod merkle;
 pub mod nomad_base;

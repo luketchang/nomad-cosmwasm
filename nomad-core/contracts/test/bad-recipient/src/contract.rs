@@ -4,7 +4,10 @@ use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
 use cw2::set_contract_version;
 
 use crate::error::ContractError;
-use common::{test::test_recipient::{InstantiateMsg, QueryMsg}, HandleMsg};
+use common::{
+    test::test_recipient::{InstantiateMsg, QueryMsg},
+    HandleMsg,
+};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:bad-recipient";

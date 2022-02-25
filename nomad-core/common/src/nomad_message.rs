@@ -53,7 +53,6 @@ impl From<NomadMessage> for HandleMsg {
             message: msg.body,
         }
     }
-        
 }
 
 impl NomadMessage {
