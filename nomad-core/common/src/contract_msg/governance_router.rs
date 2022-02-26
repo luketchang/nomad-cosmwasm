@@ -4,7 +4,8 @@ use lazy_static::__Deref;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 
-const BATCH_MESSAGE_LEN: usize = 33;
+const BATCH_MESSAGE_LEN: usize = 1 + 32;
+const TRANSFER_GOVERNOR_MESSAGE_LEN: usize = 1 + 4 + 32;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Call {
@@ -41,7 +42,7 @@ impl GovernanceMessage {
      * type (1 byte) || hash (32 bytes)
      */
 
-    /// Format a `batch` governance call
+    /// Format a `Batch` governance call
     pub fn format_batch(calls: Vec<Call>) -> Self {
         let mut buf: Vec<u8> = Vec::new();
 
@@ -73,7 +74,7 @@ impl GovernanceMessage {
         keccak256(flattened_batch).into()
     }
 
-    /// Checks if batch call has the proper prefix and length
+    /// Checks if view has the proper batch prefix and length
     pub fn is_valid_batch(&self) -> bool {
         self.message_type() == GovTypes::Batch && self.len() == BATCH_MESSAGE_LEN
     }
@@ -81,5 +82,38 @@ impl GovernanceMessage {
     /// Retrieve batch hash from formatted batch message
     pub fn batch_hash(&self) -> H256 {
         H256::from_slice(&self[1..])
+    }
+
+    /* TransferGovernor: call to transfer governor to address on given domain
+     * type (1 byte) || domain (4 bytes) || governor (32 bytes)
+     */
+
+    /// Format a `TransferGovernor` governance call
+    pub fn format_transfer_governor(domain: u32, governor: H256) -> Self {
+        let mut buf: Vec<u8> = Vec::new();
+
+        buf.push(GovTypes::TransferGovernor as u8);
+        buf.extend(domain.to_be_bytes().to_vec());
+        buf.extend(governor.as_bytes().to_vec());
+        GovernanceMessage::new(buf)
+    }
+
+    /// Checks if view has the proper transfer governor prefix and length
+    pub fn is_valid_transfer_governor(&self) -> bool {
+        self.message_type() == GovTypes::TransferGovernor && self.len() == TRANSFER_GOVERNOR_MESSAGE_LEN
+    }
+
+    /// Retrieve domain from formatted TransferGovernor message
+    pub fn domain(&self) -> u32 {
+        let mut domain: [u8; 4] = Default::default();
+        domain.copy_from_slice(&self[1..5]);
+        u32::from_be_bytes(domain)
+    }
+
+    /// Retrieve governor from formatted TransferGovernor message
+    pub fn governor(&self) -> H256 {
+        let mut governor: [u8; 32] = Default::default();
+        governor.copy_from_slice(&self[5..37]);
+        H256::from_slice(&governor)
     }
 }
