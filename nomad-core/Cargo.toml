@@ -9,6 +9,7 @@ members = [
     "contracts/home",
     "contracts/replica",
     "contracts/connection-manager",
+    "contracts/governance-router",
     "contracts/updater-manager",
     "contracts/nomad-base",
     "contracts/ownable",

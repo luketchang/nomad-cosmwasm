@@ -1,119 +1,113 @@
-use crate::{traits::TypedMessage, TypedView};
-use ethers_core::{types::H256, utils::keccak256};
-use lazy_static::__Deref;
+use ethers_core::types::{H160, H256};
 use serde::{Deserialize, Serialize};
-use std::convert::TryInto;
-
-const BATCH_MESSAGE_LEN: usize = 1 + 32;
-const TRANSFER_GOVERNOR_MESSAGE_LEN: usize = 1 + 4 + 32;
+use crate::{typed_msg::governance_message::Call, GovernanceBatchStatus};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct Call {
-    to: H256,
-    data: Vec<u8>,
+pub struct InstantiateMsg {
+    pub local_domain: u32,
+    pub recovery_timelock: u64,
+    pub xapp_connection_manager: H160,
+    pub recovery_manager: H160,
 }
 
-#[repr(u8)]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub enum GovTypes {
-    Invalid = 0,
-    Batch = 1,
-    TransferGovernor = 2,
+#[serde(rename_all = "snake_case")]
+pub enum ExecuteMsg {
+    ExecuteCallBatch { calls: Vec<Call> },
+    ExecuteGovernanceActions {
+        local_calls: Vec<Call>,
+        domains: Vec<u32>,
+        remote_calls: Vec<Call>,
+    },
+    ExitRecovery {},
+    InitiateRecoveryTimelock {},
+    SetRouterGlobal { 
+        domain: u32,
+        router: H256,
+    },
+    SetRouterLocal {
+        domain: u32,
+        router: H256,
+    },
+    SetXAppConnectionManager {
+        xapp_connection_manager: String,
+    },
+    TransferGovernor {
+        new_domain: u32,
+        new_governor: H160,
+    },
+    TransferRecoveryManager {
+        new_recovery_manager: H160,
+    },
 }
 
-impl From<u8> for GovTypes {
-    fn from(num: u8) -> Self {
-        match num {
-            0 => Self::Invalid,
-            1 => Self::Batch,
-            2 => Self::TransferGovernor,
-            _ => panic!("Invalid u8 for GovernanceMessage enum!"),
-        }
-    }
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum QueryMsg {
+    Domains {},
+    Governor {},
+    GovernorDomain {},
+    InRecovery {},
+    InboundCallBatches { batch_hash: H256 },
+    LocalDomain {},
+    RecoveryActiveAt {},
+    RecoveryManager {},
+    RecoveryTimelock {},
+    Routers { domain: u32 },
+    XAppConnectionManager {},
 }
 
-pub type GovernanceMessage = TypedView;
-impl TypedMessage for GovernanceMessage {
-    type MessageEnum = GovTypes;
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct DomainsResponse {
+    pub domains: Vec<u32>,
 }
 
-impl GovernanceMessage {
-    /* Batch: batch of calls to execute
-     * type (1 byte) || hash (32 bytes)
-     */
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct GovernorResponse {
+    pub governor: H160,
+}
 
-    /// Format a `Batch` governance call
-    pub fn format_batch(calls: Vec<Call>) -> Self {
-        let mut buf: Vec<u8> = Vec::new();
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct GovernorDomainResponse {
+    pub governor_domain: u32,
+}
 
-        buf.push(GovTypes::Batch as u8);
-        buf.extend(Self::get_batch_hash(calls).as_bytes().to_vec());
-        GovernanceMessage::new(buf)
-    }
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct InRecoveryResponse {
+    pub in_recovery: bool,
+}
 
-    /// Format a call as: to || data_len || data
-    pub fn serialize_call(call: Call) -> Vec<u8> {
-        let mut buf: Vec<u8> = Vec::new();
-        buf.extend(call.to.as_bytes().to_vec());
-        buf.extend((call.data.len() as i32).to_be_bytes().to_vec());
-        buf.extend(call.data);
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct InboundCallBatchesResponse {
+    pub status: GovernanceBatchStatus,
+}
 
-        buf
-    }
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct LocalDomainResponse {
+    pub local_domain: u32,
+}
 
-    /// Hash of the following: num_calls || call_1 || call_2 || ... || call_n
-    pub fn get_batch_hash(calls: Vec<Call>) -> H256 {
-        let mut batch: Vec<Vec<u8>> = Vec::new();
-        batch.push(vec![calls.len().try_into().unwrap()]);
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct RecoveryActiveAtResponse {
+    pub active_at: u64,
+}
 
-        for call in calls {
-            batch.push(Self::serialize_call(call));
-        }
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct RecoveryManagerResponse {
+    pub recovery_manager: H160,
+}
 
-        let flattened_batch = batch.into_iter().flatten().collect::<Vec<u8>>();
-        keccak256(flattened_batch).into()
-    }
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct RecoveryTimelockResponse {
+    pub recovery_timelock: u64,
+}
 
-    /// Checks if view has the proper batch prefix and length
-    pub fn is_valid_batch(&self) -> bool {
-        self.message_type() == GovTypes::Batch && self.len() == BATCH_MESSAGE_LEN
-    }
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct RoutersResponse {
+    pub router: String,
+}
 
-    /// Retrieve batch hash from formatted batch message
-    pub fn batch_hash(&self) -> H256 {
-        H256::from_slice(&self[1..])
-    }
-
-    /* TransferGovernor: call to transfer governor to address on given domain
-     * type (1 byte) || domain (4 bytes) || governor (32 bytes)
-     */
-
-    /// Format a `TransferGovernor` governance call
-    pub fn format_transfer_governor(domain: u32, governor: H256) -> Self {
-        let mut buf: Vec<u8> = Vec::new();
-
-        buf.push(GovTypes::TransferGovernor as u8);
-        buf.extend(domain.to_be_bytes().to_vec());
-        buf.extend(governor.as_bytes().to_vec());
-        GovernanceMessage::new(buf)
-    }
-
-    /// Checks if view has the proper transfer governor prefix and length
-    pub fn is_valid_transfer_governor(&self) -> bool {
-        self.message_type() == GovTypes::TransferGovernor && self.len() == TRANSFER_GOVERNOR_MESSAGE_LEN
-    }
-
-    /// Retrieve domain from formatted TransferGovernor message
-    pub fn domain(&self) -> u32 {
-        let mut domain: [u8; 4] = Default::default();
-        domain.copy_from_slice(&self[1..5]);
-        u32::from_be_bytes(domain)
-    }
-
-    /// Retrieve governor from formatted TransferGovernor message
-    pub fn governor(&self) -> H256 {
-        let mut governor: [u8; 32] = Default::default();
-        governor.copy_from_slice(&self[5..37]);
-        H256::from_slice(&governor)
-    }
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct XAppConnectionManagerResponse {
+    pub xapp_connection_manager: String,
 }

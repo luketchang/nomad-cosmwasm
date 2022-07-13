@@ -1,5 +1,4 @@
 pub mod connection_manager;
-pub mod governance_router;
 pub mod home;
 pub mod merkle;
 pub mod nomad_base;
@@ -8,3 +7,4 @@ pub mod queue;
 pub mod replica;
 pub mod test;
 pub mod updater_manager;
+pub mod governance_router;

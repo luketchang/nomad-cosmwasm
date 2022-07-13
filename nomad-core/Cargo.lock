@@ -927,6 +927,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "governance-router"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw2",
+ "ethers-core",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "group"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
